@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.paymentRoutes = void 0;
+const express_1 = require("express");
+const payment_controller_1 = require("./payment.controller");
+const auth_1 = __importDefault(require("../../middleware/auth"));
+const user_constants_1 = require("../user/user.constants");
+const validateRequest_1 = __importDefault(require("../../middleware/validateRequest"));
+const payment_validation_1 = require("./payment.validation");
+const router = (0, express_1.Router)();
+router.post('/init-payment', (0, auth_1.default)(user_constants_1.USER_ROLE.user), (0, validateRequest_1.default)(payment_validation_1.paymentValidation.createInitPaymentValidationSchema), payment_controller_1.paymentController.createPaymentInit);
+router.post('/second-payment', (0, auth_1.default)(user_constants_1.USER_ROLE.user), (0, validateRequest_1.default)(payment_validation_1.paymentValidation.createSecondPaymentValidationSchema), payment_controller_1.paymentController.createSecondPayment);
+router.patch('/accept-payment/:id', (0, auth_1.default)(user_constants_1.USER_ROLE.admin), payment_controller_1.paymentController.acceptPayment);
+router.patch('/reject-payment/:id', (0, auth_1.default)(user_constants_1.USER_ROLE.admin), payment_controller_1.paymentController.rejectPayment);
+router.patch('/:id', payment_controller_1.paymentController.updatePayment);
+router.delete('/:id', payment_controller_1.paymentController.deletePayment);
+router.get('/:id', payment_controller_1.paymentController.getPaymentById);
+router.get('/', payment_controller_1.paymentController.getAllPayment);
+exports.paymentRoutes = router;
