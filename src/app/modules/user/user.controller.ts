@@ -24,16 +24,6 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getAllUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.getAllUser(req.query);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Users fetched successfully',
-    data: result,
-  });
-});
-
 const getUserById = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.geUserById(req.params.id);
   sendResponse(res, {
@@ -110,34 +100,12 @@ const deleteMYAccount = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-const userOverviewChart = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.getUserOverviewChart(req.query);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'User overview chart successfully',
-    data: result,
-  });
-});
-const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.getDashboardStats();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'User statistics fetched successfully',
-    data: result,
-  });
-});
-
 export const userController = {
   createUser,
-  getAllUser,
   getUserById,
   getMyProfile,
   updateUser,
   updateMyProfile,
   deleteUser,
   deleteMYAccount,
-  userOverviewChart,
-  getDashboardStats,
 };

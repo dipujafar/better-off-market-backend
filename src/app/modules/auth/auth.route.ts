@@ -49,4 +49,5 @@ router.get('/password-reset-success', (req, res) => {
       'Your password has been updated securely. You can now log in with your new credentials.',
   });
 });
+
 export const authRoutes = router;

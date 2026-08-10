@@ -2,7 +2,7 @@ import { Error, Schema, model } from 'mongoose';
 import config from '../../config';
 import bcrypt from 'bcrypt';
 import { IUser, UserModel } from './user.interface';
-import { Login_With, Role, USER_ROLE } from './user.constants';
+import { gender, Login_With, Role, USER_ROLE } from './user.constants';
 
 const userSchema: Schema<IUser> = new Schema(
   {
@@ -42,7 +42,7 @@ const userSchema: Schema<IUser> = new Schema(
 
     gender: {
       type: String,
-      enum: ['Male', 'Female', 'Others'],
+      enum: gender,
       default: null,
     },
     dateOfBirth: {
@@ -52,15 +52,14 @@ const userSchema: Schema<IUser> = new Schema(
     phoneNumber: {
       type: String,
       required: false,
-      unique: true,
       sparse: true,
       trim: true,
-      validate: {
-        validator: function (v: string) {
-          return /^(\+?\d{8,15})$/.test(v);
-        },
-        message: (props: any) => `${props.value} is not a valid phone number!`,
-      },
+      // validate: {
+      //   validator: function (v: string) {
+      //     return /^(\+?\d{8,15})$/.test(v);
+      //   },
+      //   message: (props: any) => `${props.value} is not a valid phone number!`,
+      // },
       default: null,
     },
     location: {

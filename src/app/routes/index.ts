@@ -4,11 +4,8 @@ import { userRoutes } from '../modules/user/user.route';
 import { authRoutes } from '../modules/auth/auth.route';
 import { notificationRoutes } from '../modules/notification/notificaiton.route';
 import { contentsRoutes } from '../modules/contents/contents.route';
-import { requestsRoutes } from '../modules/product-requests/requests.route';
-import { categoryRoutes } from '../modules/category/category.route';
-import { moneyTransferCompanyRoutes } from '../modules/moneyTransferCompany/moneyTransferCompany.route';
-import { paymentRoutes } from '../modules/payment/payment.route';
-import { ordersRoutes } from '../modules/orders/orders.route';
+import { propertiesRoutes } from '../modules/properties/properties.route';
+import { favoriteRoutes } from '../modules/favorite/favorite.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -33,25 +30,13 @@ const moduleRoutes = [
     route: contentsRoutes,
   },
   {
-    path: '/products-requests',
-    route: requestsRoutes,
+    path: '/properties',
+    route: propertiesRoutes,
   },
   {
-    path: '/categories',
-    route: categoryRoutes,
-  },
-  {
-    path: '/money-transfer-companies',
-    route: moneyTransferCompanyRoutes,
-  },
-  {
-    path: '/payments',
-    route: paymentRoutes,
-  },
-  {
-    path: '/orders',
-    route: ordersRoutes,
-  },
+    path: '/favorites',
+    route: favoriteRoutes,
+  }
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));
 
