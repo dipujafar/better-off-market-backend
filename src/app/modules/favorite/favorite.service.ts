@@ -15,7 +15,7 @@ const createFavorite = async (payload: IFavorite) => {
 
 const getAllFavorite = async (query: Record<string, any>) => {
   query["isDeleted"] = false;
-  const favoriteModel = new QueryBuilder(Favorite.find(), query)
+  const favoriteModel = new QueryBuilder(Favorite.find().populate('property'), query)
     .search([])
     .filter()
     .paginate()
@@ -48,11 +48,7 @@ const updateFavorite = async (id: string, payload: Partial<IFavorite>) => {
 };
 
 const deleteFavorite = async (id: string) => {
-  const result = await Favorite.findByIdAndUpdate(
-    id,
-    { isDeleted: true },
-    { new: true }
-  );
+  const result = await Favorite.findByIdAndDelete(id);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete favorite');
   }

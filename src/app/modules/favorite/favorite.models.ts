@@ -13,19 +13,13 @@ const favoriteSchema = new Schema<IFavorite>(
   }
 );
 
-//favoriteSchema.pre('find', function (next) {
-//  //@ts-ignore
-//  this.find({ isDeleted: { $ne: true } });
-//  next();
-//});
-
-//favoriteSchema.pre('findOne', function (next) {
-//@ts-ignore
-//this.find({ isDeleted: { $ne: true } });
-// next();
-//});
 
 favoriteSchema.pre('find', function (next) {
+  this.where({ isDeleted: false });
+  next();
+});
+
+favoriteSchema.pre('findOne', function (next) {
   this.where({ isDeleted: false });
   next();
 });
