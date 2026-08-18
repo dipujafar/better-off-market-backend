@@ -7,6 +7,7 @@ export interface IUser {
   email: string;
   fcmToken: string;
   bio: string;
+  company: string;
   phoneNumber: string;
   password: string;
   privacySettings: boolean;

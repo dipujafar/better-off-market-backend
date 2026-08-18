@@ -20,7 +20,7 @@ const propertyUploadFields = upload.fields([
 
 router.post(
     '/',
-    auth(USER_ROLE.user, USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
+    auth(USER_ROLE.user),
     propertyUploadFields,
     parseData(),
     processPropertyFiles,
@@ -29,11 +29,15 @@ router.post(
 );
 router.get('/', propertyController.getAllProperties);
 
+router.get('/price-dropped', propertyController.getPriceDroppedProperties);
+
+router.get('/my-listing', auth(USER_ROLE.user), propertyController.getMyListingProperties);
+
 router.get('/:id', propertyController.getPropertyById);
 
 router.patch(
     '/:id',
-    auth(USER_ROLE.user, USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
+    auth(USER_ROLE.user),
     propertyUploadFields,
     parseData(),
     processPropertyFiles,

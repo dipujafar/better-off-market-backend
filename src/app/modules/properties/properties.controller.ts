@@ -3,7 +3,6 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { propertyService } from './properties.service';
-import { uploadToS3 } from '../../utils/s3';
 
 const createProperty = catchAsync(async (req: Request, res: Response) => {
   req.body.seller = req.user?.userId;
@@ -23,6 +22,34 @@ const getAllProperties = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Properties fetched successfully',
     data: result.data,
+    meta: result.meta,
+  });
+});
+
+const getPriceDroppedProperties = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.getPriceDroppedProperties(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Price-dropped properties fetched successfully',
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const getMyListingProperties = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.getMyListingProperties(
+    req.user.userId,
+    req.query,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'My listings fetched successfully',
+    data: {
+      properties: result.data,
+      statusCounts: result.statusCounts,
+    },
     meta: result.meta,
   });
 });
@@ -63,6 +90,8 @@ const deleteProperty = catchAsync(async (req: Request, res: Response) => {
 export const propertyController = {
   createProperty,
   getAllProperties,
+  getPriceDroppedProperties,
+  getMyListingProperties,
   getPropertyById,
   updateProperty,
   deleteProperty,

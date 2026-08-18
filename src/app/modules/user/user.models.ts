@@ -71,6 +71,10 @@ const userSchema: Schema<IUser> = new Schema(
       enum: Login_With,
       default: Login_With.credentials,
     },
+    company: {
+      type: String,
+      default: null,
+    },
 
     status: {
       type: String,

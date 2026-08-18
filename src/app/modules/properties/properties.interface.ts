@@ -1,9 +1,27 @@
 import { Model, Types } from 'mongoose';
+import { STATUS_OPTIONS } from './properties.constants';
+
+
+
+export type PropertyStatus = (typeof STATUS_OPTIONS)[number];
+
+export interface IDocument {
+    name: string;
+    size: string;
+    updated: string;
+    url: string;
+}
+
+export interface ILocation {
+    type: 'Point';
+    coordinates: [number, number];
+}
+
 
 export interface IProperty {
     _id?: Types.ObjectId;
     seller: Types.ObjectId;
-    status: string;
+    status: PropertyStatus;
 
     propertyType: string;
     useType?: string;
@@ -11,7 +29,10 @@ export interface IProperty {
 
     // Ownership
     ownership: 'own' | 'assignable';
-    assignableContractFile?: string;
+    assignableContractFile?: IDocument;
+
+    // Location
+    location: ILocation;
 
     // Basic Information
     streetAddress: string;
@@ -21,6 +42,7 @@ export interface IProperty {
     county: string;
     parcelIds?: string;
     listingPrice: number;
+    oldListingPrice?: number;
     buyItNowPrice?: number;
     arv?: number;
     marketingDescription: string;
@@ -62,7 +84,14 @@ export interface IProperty {
 
     // Files (S3 URLs after upload middleware)
     photos: string[];
-    documents?: string[];
+    documents?: IDocument[];
+
+    // utils properties
+    totalViews: number;
+    totalSaved: number;
+    totalOffers: number;
+    totalRsvp: number;
+
 
     isDeleted: boolean;
 }

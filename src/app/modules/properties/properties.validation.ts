@@ -6,6 +6,15 @@ import {
     USE_TYPE_OPTIONS,
 } from './properties.constants';
 
+
+const locationSchema = z.object({
+    type: z.literal('Point'),
+
+    coordinates: z
+        .array(z.number())
+        .length(2, 'Coordinates must contain [longitude, latitude]'),
+});
+
 // Files arrive as uploaded S3 URLs by the time they hit validation
 // (multer + your upload-to-S3 middleware runs first), so these are strings.
 const createPropertyValidationSchema = z
@@ -23,7 +32,18 @@ const createPropertyValidationSchema = z
             ownership: z.enum(['own', 'assignable'], {
                 message: 'Select an ownership type',
             }),
-            assignableContractFile: z.string().optional().nullable(),
+            assignableContractFile: z
+                .object({
+                    name: z.string(),
+                    size: z.string(),
+                    updated: z.string(),
+                    url: z.string(),
+                })
+                .optional()
+                .nullable(),
+
+            // Location
+            location: locationSchema,
 
             // Basic Information
             streetAddress: z.string().min(1, 'Street address is required'),
@@ -90,7 +110,17 @@ const createPropertyValidationSchema = z
             photos: z
                 .array(z.string())
                 .min(5, 'Minimum 5 high-res photos required'),
-            documents: z.array(z.string()).optional(),
+
+            documents: z
+                .array(
+                    z.object({
+                        name: z.string(),
+                        size: z.string(),
+                        updated: z.string(),
+                        url: z.string(),
+                    }),
+                )
+                .optional(),
         }),
     })
     .superRefine((data, ctx) => {
@@ -131,11 +161,20 @@ const updatePropertyValidationSchema = z.object({
     body: z.object({
         propertyType: z.enum(PROPERTY_TYPES, {
             required_error: 'Property type is required',
-        }),
+        }).optional(),
         useType: z.enum(USE_TYPE_OPTIONS).optional(),
         useTypeOther: z.string().optional(),
         ownership: z.enum(['own', 'assignable']).optional(),
-        assignableContractFile: z.string().optional().nullable(),
+        location: locationSchema.optional(),
+        assignableContractFile: z
+            .object({
+                name: z.string(),
+                size: z.string(),
+                updated: z.string(),
+                url: z.string(),
+            })
+            .optional()
+            .nullable(),
         streetAddress: z.string().optional(),
         state: z.string().optional(),
         city: z.string().optional(),
@@ -143,6 +182,7 @@ const updatePropertyValidationSchema = z.object({
         county: z.string().optional(),
         parcelIds: z.string().optional(),
         listingPrice: z.coerce.number().positive().optional(),
+        oldListingPrice: z.coerce.number().positive().optional(),
         buyItNowPrice: z.coerce.number().optional(),
         arv: z.coerce.number().optional(),
         marketingDescription: z.string().max(3000).optional(),
@@ -157,7 +197,16 @@ const updatePropertyValidationSchema = z.object({
         titleCompany: z.string().optional(),
         closingDate: z.string().optional(),
         photos: z.array(z.string()).optional(),
-        documents: z.array(z.string()).optional(),
+        documents: z
+            .array(
+                z.object({
+                    name: z.string(),
+                    size: z.string(),
+                    updated: z.string(),
+                    url: z.string(),
+                }),
+            )
+            .optional(),
         status: z.string().optional(),
     }),
 });

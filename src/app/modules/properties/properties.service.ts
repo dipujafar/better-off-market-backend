@@ -2,8 +2,9 @@ import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
 import QueryBuilder from '../../class/builder/QueryBuilder';
 import { IProperty } from './properties.interface';
-import { propertySearchableFields } from './properties.constants';
+import { PROPERTY_STATUS, propertySearchableFields, STATUS } from './properties.constants';
 import { Property } from './properties.models';
+import { Types } from 'mongoose';
 
 const createProperty = async (payload: Partial<IProperty>) => {
   const result = await Property.create(payload);
@@ -24,6 +25,67 @@ const getAllProperties = async (query: Record<string, unknown>) => {
   const data = await propertyQuery.modelQuery;
   const meta = await propertyQuery.countTotal();
   return { data, meta };
+};
+
+import { FilterQuery } from 'mongoose';
+
+const getPriceDroppedProperties = async (query: Record<string, unknown>) => {
+  const filter: FilterQuery<IProperty> = {
+    oldListingPrice: { $ne: null },
+    $expr: { $gt: ['$oldListingPrice', '$listingPrice'] },
+  } as FilterQuery<IProperty>;
+
+  const propertyQuery = new QueryBuilder(Property.find(filter), query)
+    .search(propertySearchableFields)
+    .filter()
+    .paginate()
+    .sort()
+    .fields();
+
+  const data = await propertyQuery.modelQuery;
+  const meta = await propertyQuery.countTotal();
+
+  return { data, meta };
+};
+
+
+const getMyListingProperties = async (
+  sellerId: string,
+  query: Record<string, unknown>,
+) => {
+  const propertyQuery = new QueryBuilder(
+    Property.find({ seller: sellerId }),
+    query,
+  )
+    .search(propertySearchableFields)
+    .filter()
+    .paginate()
+    .sort()
+    .fields();
+
+  const data = await propertyQuery.modelQuery;
+  const meta = await propertyQuery.countTotal();
+
+  const counts: { _id: string; count: number }[] = await Property.aggregate([
+    { $match: { seller: new Types.ObjectId(sellerId), isDeleted: false } },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
+
+  const countMap: Record<string, number> = {};
+  let all = 0;
+
+  for (const c of counts) {
+    countMap[c._id] = c.count;
+    all += c.count;
+  }
+
+  const statusCounts: Record<string, number> = { all };
+  for (const key of PROPERTY_STATUS) {
+    const label = STATUS[key];
+    statusCounts[key] = countMap[label] || 0;
+  }
+
+  return { data, meta, statusCounts };
 };
 
 const getPropertyById = async (id: string) => {
@@ -64,6 +126,8 @@ const deleteProperty = async (id: string) => {
 export const propertyService = {
   createProperty,
   getAllProperties,
+  getPriceDroppedProperties,
+  getMyListingProperties,
   getPropertyById,
   updateProperty,
   deleteProperty,

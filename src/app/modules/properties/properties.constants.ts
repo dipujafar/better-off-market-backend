@@ -20,14 +20,7 @@ export const SEWER_OPTIONS = ['Public', 'Septic', 'Aerobic', 'None', 'Other'] as
 export const FOUNDATION_OPTIONS = ['Block', 'Poured', 'Slab', 'Stone', 'Other'] as const;
 export const PARKING_OPTIONS = ['Driveway', 'On street', 'Carport', 'Assigned', 'None', 'Other'] as const;
 
-export const PROPERTY_STATUS = [
-    'draft',
-    'pending_review',
-    'active',
-    'under_contract',
-    'sold',
-    'archived',
-] as const;
+
 
 export interface BasicInfoConfig {
     showParcelId: boolean;
@@ -53,3 +46,32 @@ export const propertySearchableFields = [
     'zipCode',
     'county',
 ];
+
+
+// export const PROPERTY_STATUS = [
+//     'draft',
+//     'pending_review',
+//     'active',
+//     'under_contract',
+//     'sold',
+//     'archived',
+// ] as const;
+
+
+export const STATUS = {
+    pending: "Pending",
+    active: "Active",
+    under_contact: "Under Contact",
+    sold: "Sold",
+    rejected: "Rejected"
+} as const
+
+export const STATUS_OPTIONS = [
+    STATUS.pending,
+    STATUS.active,
+    STATUS.sold,
+    STATUS.under_contact,
+    STATUS.rejected
+];
+
+export const PROPERTY_STATUS = Object.keys(STATUS) as (keyof typeof STATUS)[];

@@ -1,12 +1,39 @@
 import { Schema, model } from 'mongoose';
-import { IProperty, PropertyModel } from './properties.interface';
+import { ILocation, IProperty, PropertyModel } from './properties.interface';
 import {
   PROPERTY_TYPES,
   OWNERSHIP_TYPES,
   HOA_OPTIONS,
   HOA_FREQUENCY,
-  PROPERTY_STATUS,
+  STATUS_OPTIONS,
+  STATUS
 } from './properties.constants';
+
+const LocationSchema = new Schema<ILocation>(
+  {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+      default: 'Point',
+    },
+
+    coordinates: {
+      type: [Number],
+      required: true,
+
+      validate: {
+        validator: function (value: number[]) {
+          return value.length === 2;
+        },
+        message: 'Coordinates must contain [longitude, latitude]',
+      },
+    },
+  },
+  {
+    _id: false,
+  },
+);
 
 const propertySchema: Schema<IProperty> = new Schema(
   {
@@ -17,8 +44,14 @@ const propertySchema: Schema<IProperty> = new Schema(
     },
     status: {
       type: String,
-      enum: PROPERTY_STATUS,
-      default: 'draft',
+      enum: {
+        values: STATUS_OPTIONS,
+        message: ` {VALUE} is not a valid status. Accepted values: ${STATUS_OPTIONS.join(
+          ', ',
+        )}`,
+      },
+      default: STATUS.pending,
+      required: true,
     },
 
     propertyType: {
@@ -35,8 +68,22 @@ const propertySchema: Schema<IProperty> = new Schema(
       enum: OWNERSHIP_TYPES,
       required: true,
     },
-    assignableContractFile: { type: String, default: null },
+    assignableContractFile: {
+      type: {
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        size: { type: String, required: true },
+        updated: { type: String, required: true },
+        url: { type: String, required: true },
+      },
+      default: null,
+    },
 
+    // map location
+    location: {
+      type: LocationSchema,
+      required: true,
+    },
     // Basic Information
     streetAddress: { type: String, required: true },
     state: { type: String, required: true },
@@ -45,6 +92,7 @@ const propertySchema: Schema<IProperty> = new Schema(
     county: { type: String, required: true },
     parcelIds: { type: String, default: null },
     listingPrice: { type: Number, required: true },
+    oldListingPrice: { type: Number, default: null },
     buyItNowPrice: { type: Number, default: null },
     arv: { type: Number, default: null },
     marketingDescription: { type: String, required: true, maxlength: 3000 },
@@ -104,8 +152,35 @@ const propertySchema: Schema<IProperty> = new Schema(
       },
     },
     documents: {
-      type: [String],
+      type: [
+        {
+          name: { type: String, required: true },
+          size: { type: String, required: true },
+          updated: { type: String, required: true },
+          url: { type: String, required: true },
+        },
+      ],
       default: [],
+    },
+
+    totalViews: {
+      type: Number,
+      default: 0,
+    },
+
+    totalSaved: {
+      type: Number,
+      default: 0,
+    },
+
+    totalOffers: {
+      type: Number,
+      default: 0,
+    },
+
+    totalRsvp: {
+      type: Number,
+      default: 0
     },
 
     isDeleted: {
