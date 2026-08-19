@@ -4,9 +4,17 @@ import { IFavorite } from './favorite.interface';
 import Favorite from './favorite.models';
 import AppError from '../../error/AppError';
 import QueryBuilder from '../../class/builder/QueryBuilder';
+import { Property } from '../properties/properties.models';
 
 const createFavorite = async (payload: IFavorite) => {
   const result = await Favorite.create(payload);
+
+  Property.findByIdAndUpdate(result?.property, {
+    $inc: { totalSaved: 1 },
+  }).catch((err) => {
+    console.error('Failed to decrement favoriteCount:', err);
+  });
+
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create favorite');
   }
@@ -49,9 +57,18 @@ const updateFavorite = async (id: string, payload: Partial<IFavorite>) => {
 
 const deleteFavorite = async (id: string) => {
   const result = await Favorite.findByIdAndDelete(id);
+
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete favorite');
   }
+
+  Property.findByIdAndUpdate(result.property, {
+    $inc: { totalSaved: -1 },
+  }).catch((err) => {
+    console.error('Failed to decrement favoriteCount:', err);
+  });
+
+
   return result;
 };
 

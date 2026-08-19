@@ -121,6 +121,12 @@ const createPropertyValidationSchema = z
                     }),
                 )
                 .optional(),
+
+            openHouse: z.object({
+                date: z.string(),
+                startTime: z.string(),
+                endTime: z.string(),
+            }).optional(),
         }),
     })
     .superRefine((data, ctx) => {
@@ -207,6 +213,11 @@ const updatePropertyValidationSchema = z.object({
                 }),
             )
             .optional(),
+        openHouse: z.object({
+            date: z.string(),
+            startTime: z.string(),
+            endTime: z.string(),
+        }).optional(),
         status: z.string().optional(),
     }),
 });

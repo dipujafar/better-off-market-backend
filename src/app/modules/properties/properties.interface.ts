@@ -17,6 +17,12 @@ export interface ILocation {
     coordinates: [number, number];
 }
 
+export interface IOpenHouse {
+    date: string;
+    startTime: string;
+    endTime: string;
+}
+
 
 export interface IProperty {
     _id?: Types.ObjectId;
@@ -91,6 +97,9 @@ export interface IProperty {
     totalSaved: number;
     totalOffers: number;
     totalRsvp: number;
+
+    // open house
+    openHouse?: IOpenHouse;
 
 
     isDeleted: boolean;

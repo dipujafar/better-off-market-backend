@@ -183,6 +183,15 @@ const propertySchema: Schema<IProperty> = new Schema(
       default: 0
     },
 
+    openHouse: {
+      type: {
+        date: { type: String, required: true },
+        startTime: { type: String, required: true },
+        endTime: { type: String, required: true },
+      },
+      required: false
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,
