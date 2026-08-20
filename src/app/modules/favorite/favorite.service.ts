@@ -12,7 +12,7 @@ const createFavorite = async (payload: IFavorite) => {
   Property.findByIdAndUpdate(result?.property, {
     $inc: { totalSaved: 1 },
   }).catch((err) => {
-    console.error('Failed to decrement favoriteCount:', err);
+    console.error('Failed to increment favoriteCount:', err);
   });
 
   if (!result) {

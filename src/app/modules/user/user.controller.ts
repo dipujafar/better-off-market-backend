@@ -45,8 +45,6 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateUser = catchAsync(async (req: Request, res: Response) => {
-  await User.findById(req.params.id);
-
   if (req?.file) {
     req.body.profile = await uploadToS3({
       file: req.file,
@@ -64,7 +62,6 @@ const updateUser = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
-  await User.findById(req.user.userId);
   if (req?.file) {
     req.body.profile = await uploadToS3({
       file: req.file,

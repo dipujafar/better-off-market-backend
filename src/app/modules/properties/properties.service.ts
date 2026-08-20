@@ -11,6 +11,13 @@ const createProperty = async (payload: Partial<IProperty>) => {
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Property creation failed');
   }
+
+  User.findByIdAndUpdate(result?.seller, {
+    $inc: { totalListing: 1 },
+  }).catch((err) => {
+    console.error('Failed to increment totalListing:', err);
+  });
+
   return result;
 };
 
@@ -28,6 +35,7 @@ const getAllProperties = async (query: Record<string, unknown>) => {
 };
 
 import { FilterQuery } from 'mongoose';
+import { User } from '../user/user.models';
 
 const getPriceDroppedProperties = async (query: Record<string, unknown>) => {
   const filter: FilterQuery<IProperty> = {
@@ -89,7 +97,7 @@ const getMyListingProperties = async (
 };
 
 const getPropertyById = async (id: string) => {
-  const result = await Property.findById(id);
+  const result = await Property.findById(id).populate('seller');
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
   }
@@ -120,6 +128,13 @@ const deleteProperty = async (id: string) => {
     { isDeleted: true },
     { new: true },
   );
+
+  User.findByIdAndUpdate(result?.seller, {
+    $inc: { totalListing: -1 },
+  }).catch((err) => {
+    console.error('Failed to decrement totalListing:', err);
+  });
+
   return result;
 };
 

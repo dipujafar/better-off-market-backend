@@ -8,13 +8,17 @@ export interface IUser {
   fcmToken: string;
   bio: string;
   company: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   password: string;
   privacySettings: boolean;
+
+  avgRating?: number;
+  totalListing?: number;
 
   // profile Details
   gender: 'Male' | 'Female' | 'Others';
   rank: string;
+
 
   referralCode: string;
   fleet: 797 | 777 | 787 | 350 | 380;

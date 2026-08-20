@@ -40,6 +40,11 @@ const userSchema: Schema<IUser> = new Schema(
       default: null,
     },
 
+    bio: {
+      type: String,
+      default: null,
+    },
+
     gender: {
       type: String,
       enum: gender,
@@ -49,6 +54,17 @@ const userSchema: Schema<IUser> = new Schema(
       type: String,
       default: null,
     },
+
+    totalListing: {
+      type: Number,
+      default: 0,
+    },
+
+    avgRating: {
+      type: Number,
+      default: 0,
+    },
+
     phoneNumber: {
       type: String,
       required: false,
