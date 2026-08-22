@@ -12,12 +12,6 @@ const createProperty = async (payload: Partial<IProperty>) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Property creation failed');
   }
 
-  User.findByIdAndUpdate(result?.seller, {
-    $inc: { totalListing: 1 },
-  }).catch((err) => {
-    console.error('Failed to increment totalListing:', err);
-  });
-
   return result;
 };
 
@@ -119,6 +113,7 @@ const updateProperty = async (id: string, payload: Partial<IProperty>) => {
 
 const deleteProperty = async (id: string) => {
   const existing = await Property.findById(id);
+
   if (!existing) {
     throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
   }
@@ -129,14 +124,30 @@ const deleteProperty = async (id: string) => {
     { new: true },
   );
 
-  User.findByIdAndUpdate(result?.seller, {
-    $inc: { totalListing: -1 },
-  }).catch((err) => {
-    console.error('Failed to decrement totalListing:', err);
-  });
-
   return result;
 };
+
+
+// ======================================= admin services =======================================
+const approveProperty = async (id: string) => {
+  const result = await Property.findByIdAndUpdate(id, { status: STATUS.active }, { new: true });
+
+
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
+  }
+  return result;
+}
+
+const rejectProperty = async (id: string) => {
+  const result = await Property.findByIdAndUpdate(id, { status: STATUS.rejected }, { new: true });
+
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
+  }
+
+  return result;
+}
 
 export const propertyService = {
   createProperty,
@@ -146,4 +157,6 @@ export const propertyService = {
   getPropertyById,
   updateProperty,
   deleteProperty,
+  approveProperty,
+  rejectProperty
 };

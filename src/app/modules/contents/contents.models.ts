@@ -41,8 +41,22 @@ const contentsSchema = new Schema<IContents>(
   },
 );
 
-// filter out deleted documents
+contentsSchema.pre('find', function (next) {
+  this.where({ isDeleted: false });
+  next();
+});
 
+contentsSchema.pre('findOne', function (next) {
+  this.where({ isDeleted: false });
+  next();
+});
+
+contentsSchema.pre('aggregate', function (next) {
+  this.pipeline().unshift({ $match: { isDeleted: false } });
+  next();
+});
+
+// filter out deleted documents
 const Contents = model<IContents, IContentsModel>('Contents', contentsSchema);
 
 export default Contents;

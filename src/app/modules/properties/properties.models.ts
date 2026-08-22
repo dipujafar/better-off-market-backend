@@ -35,6 +35,8 @@ const LocationSchema = new Schema<ILocation>(
   },
 );
 
+
+
 const propertySchema: Schema<IProperty> = new Schema(
   {
     seller: {
@@ -70,7 +72,6 @@ const propertySchema: Schema<IProperty> = new Schema(
     },
     assignableContractFile: {
       type: {
-        id: { type: String, required: true },
         name: { type: String, required: true },
         size: { type: String, required: true },
         updated: { type: String, required: true },
@@ -213,6 +214,11 @@ propertySchema.statics.GetPropertiesBySeller = async function (
 };
 
 propertySchema.pre('find', function (next) {
+  this.where({ isDeleted: false });
+  next();
+});
+
+propertySchema.pre('findOne', function (next) {
   this.where({ isDeleted: false });
   next();
 });

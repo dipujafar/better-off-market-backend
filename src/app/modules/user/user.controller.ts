@@ -5,7 +5,6 @@ import sendResponse from '../../utils/sendResponse';
 import httpStatus from 'http-status';
 import { uploadToS3 } from '../../utils/s3';
 import { otpServices } from '../otp/otp.service';
-import { User } from './user.models';
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
   if (req.file) {
@@ -25,7 +24,7 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getUserById = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.geUserById(req.params.id);
+  const result = await userService.getUserById(req.params.id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -35,11 +34,21 @@ const getUserById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.geUserById(req?.user?.userId);
+  const result = await userService.getUserById(req?.user?.userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'profile fetched successfully',
+    data: result,
+  });
+});
+
+const getSellerProfile = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getSellerProfile(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Seller profile fetched successfully',
     data: result,
   });
 });
@@ -97,10 +106,12 @@ const deleteMYAccount = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 export const userController = {
   createUser,
   getUserById,
   getMyProfile,
+  getSellerProfile,
   updateUser,
   updateMyProfile,
   deleteUser,

@@ -6,6 +6,10 @@ import { IUser } from './user.interface';
 import { User } from './user.models';
 import { checkUserExit } from './user.utils';
 import { sendNotificationMessage } from '../notification/notification.utils';
+import { Property } from '../properties/properties.models';
+import { STATUS } from '../properties/properties.constants';
+import { Types } from 'mongoose';
+import Reviews from '../reviews/reviews.models';
 
 export type IFilter = {
   searchTerm?: string;
@@ -48,12 +52,56 @@ const createUser = async (payload: IUser): Promise<IUser> => {
 };
 
 
-const geUserById = async (id: string) => {
+const getUserById = async (id: string) => {
   const result = await User.findById(id).select('-password');
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
   return result;
+};
+
+const getSellerProfile = async (sellerId: string) => {
+  const seller = await User.findById(sellerId).select('-password');
+
+  if (!seller) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Seller not found');
+  }
+
+  const ratingAgg = await Reviews.aggregate([
+    { $match: { seller: new Types.ObjectId(sellerId), isDeleted: false } },
+    {
+      $group: {
+        _id: '$seller',
+        avgRating: { $avg: '$rating' },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const avgRating = ratingAgg[0]?.avgRating
+    ? Number(ratingAgg[0].avgRating.toFixed(2))
+    : 0;
+  const totalReviews = ratingAgg[0]?.totalReviews || 0;
+
+  const activeListing = await Property.countDocuments({
+    seller: sellerId,
+    status: STATUS.active,
+    isDeleted: false,
+  });
+
+  const totalListing = await Property.countDocuments({
+    seller: sellerId,
+    status: { $ne: STATUS.pending },
+    isDeleted: false,
+  });
+
+  return {
+    ...seller.toObject(),
+    avgRating,
+    totalReviews,
+    activeListing,
+    totalListing,
+  };
 };
 
 const updateUser = async (id: string, payload: Partial<IUser>) => {
@@ -82,7 +130,8 @@ const deleteUser = async (id: string) => {
 
 export const userService = {
   createUser,
-  geUserById,
+  getSellerProfile,
+  getUserById,
   updateUser,
   deleteUser,
 };

@@ -87,6 +87,28 @@ const deleteProperty = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ================================================ admin controller =====================================
+
+const approveProperty = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.approveProperty(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Property approved successfully',
+    data: result,
+  });
+});
+
+const rejectProperty = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.rejectProperty(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Property rejected successfully',
+    data: result,
+  });
+});
+
 export const propertyController = {
   createProperty,
   getAllProperties,
@@ -95,4 +117,8 @@ export const propertyController = {
   getPropertyById,
   updateProperty,
   deleteProperty,
+
+  // admin
+  approveProperty,
+  rejectProperty,
 };

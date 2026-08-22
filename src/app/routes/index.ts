@@ -6,6 +6,8 @@ import { notificationRoutes } from '../modules/notification/notificaiton.route';
 import { contentsRoutes } from '../modules/contents/contents.route';
 import { propertiesRoutes } from '../modules/properties/properties.route';
 import { favoriteRoutes } from '../modules/favorite/favorite.route';
+import { reviewsRoutes } from '../modules/reviews/reviews.route';
+import { reportsRoutes } from '../modules/reports/reports.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -36,7 +38,16 @@ const moduleRoutes = [
   {
     path: '/favorites',
     route: favoriteRoutes,
+  },
+  {
+    path: '/reviews',
+    route: reviewsRoutes,
+  },
+  {
+    path: '/reports',
+    route: reportsRoutes,
   }
+
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));
 

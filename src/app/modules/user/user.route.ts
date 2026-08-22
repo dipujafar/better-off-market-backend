@@ -66,7 +66,11 @@ router.get(
   userController.getMyProfile,
 );
 
+router.get('/seller-profile/:id', userController.getSellerProfile);
+
 router.get('/:id', userController.getUserById);
+
+
 
 
 export const userRoutes = router;

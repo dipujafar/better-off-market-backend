@@ -12,8 +12,6 @@ export interface IUser {
   password: string;
   privacySettings: boolean;
 
-  avgRating?: number;
-  totalListing?: number;
 
   // profile Details
   gender: 'Male' | 'Female' | 'Others';

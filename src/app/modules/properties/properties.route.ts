@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import multer, { memoryStorage } from 'multer';
-import { AnyZodObject } from 'zod';
 import { propertyController } from './properties.controller';
 import validateRequest from '../../middleware/validateRequest';
 import { propertyValidation } from './properties.validation';
@@ -50,5 +49,9 @@ router.delete(
     auth(USER_ROLE.user),
     propertyController.deleteProperty,
 );
+
+// ============================================== admin routes ================================================
+router.patch('/approve/:id', auth(USER_ROLE.admin), propertyController.approveProperty);
+router.patch('/reject/:id', auth(USER_ROLE.admin), propertyController.rejectProperty);
 
 export const propertiesRoutes = router;

@@ -7,8 +7,6 @@ const guestValidationSchema = z.object({
     email: z
       .string({ required_error: 'Email is required' })
       .email({ message: 'Invalid email address' }),
-    // phoneNumber: z.string({ required_error: 'Phone number is required' }),
-    // location: z.string({ required_error: 'Location is required' }),
     role: z.enum([...Role] as [string, ...string[]]).default(USER_ROLE.user),
     password: z.string({ required_error: 'Password is required' }),
   }),

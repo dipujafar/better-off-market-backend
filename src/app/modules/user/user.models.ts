@@ -55,16 +55,6 @@ const userSchema: Schema<IUser> = new Schema(
       default: null,
     },
 
-    totalListing: {
-      type: Number,
-      default: 0,
-    },
-
-    avgRating: {
-      type: Number,
-      default: 0,
-    },
-
     phoneNumber: {
       type: String,
       required: false,
