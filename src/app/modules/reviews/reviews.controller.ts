@@ -36,8 +36,18 @@ const getReviewsById = catchAsync(async (req: Request, res: Response) => {
     message: 'Reviews fetched successfully',
     data: result,
   });
-
 });
+
+const getSellerBySeller = catchAsync(async (req: Request, res: Response) => {
+  const result = await reviewsService.getAllReviewsBySeller(req.params.sellerId, req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Reviews fetched successfully',
+    data: result,
+
+  });
+})
 const updateReviews = catchAsync(async (req: Request, res: Response) => {
   const result = await reviewsService.updateReviews(req.params.id, req.body);
   sendResponse(res, {
@@ -65,6 +75,7 @@ export const reviewsController = {
   createReviews,
   getAllReviews,
   getReviewsById,
+  getSellerBySeller,
   updateReviews,
   deleteReviews,
 };

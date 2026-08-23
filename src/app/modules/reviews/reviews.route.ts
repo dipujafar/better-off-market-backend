@@ -12,6 +12,7 @@ router.post('/', auth(USER_ROLE.user), validateRequest(reviewValidation.createRe
 router.patch('/:id', reviewsController.updateReviews);
 router.delete('/:id', reviewsController.deleteReviews);
 router.get('/:id', reviewsController.getReviewsById);
+router.get('/seller/:sellerId', reviewsController.getSellerBySeller);
 router.get('/', reviewsController.getAllReviews);
 
 export const reviewsRoutes = router;

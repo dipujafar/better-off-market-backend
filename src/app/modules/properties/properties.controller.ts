@@ -64,6 +64,20 @@ const getPropertyById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getPropertiesBySeller = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.getPropertiesBySeller(
+    req.params.sellerId,
+    req.query,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Seller properties fetched successfully',
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
 const updateProperty = catchAsync(async (req: Request, res: Response) => {
   const result = await propertyService.updateProperty(
     req.params.id,
@@ -115,6 +129,7 @@ export const propertyController = {
   getPriceDroppedProperties,
   getMyListingProperties,
   getPropertyById,
+  getPropertiesBySeller,
   updateProperty,
   deleteProperty,
 

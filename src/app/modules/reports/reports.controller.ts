@@ -1,13 +1,13 @@
 
 import { Request, Response } from 'express';
-import catchAsync from '../../utils/catchAsync';  
+import catchAsync from '../../utils/catchAsync';
 import { reportsService } from './reports.service';
 import sendResponse from '../../utils/sendResponse';
-import { storeFile } from '../../utils/fileHelper';
-import { uploadToS3 } from '../../utils/s3';
+
 
 const createReports = catchAsync(async (req: Request, res: Response) => {
- const result = await reportsService.createReports(req.body);
+  req.body.user = req?.user?.userId;
+  const result = await reportsService.createReports(req.body);
   sendResponse(res, {
     statusCode: 201,
     success: true,
@@ -19,7 +19,7 @@ const createReports = catchAsync(async (req: Request, res: Response) => {
 
 const getAllReports = catchAsync(async (req: Request, res: Response) => {
 
- const result = await reportsService.getAllReports(req.query);
+  const result = await reportsService.getAllReports(req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -30,7 +30,7 @@ const getAllReports = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getReportsById = catchAsync(async (req: Request, res: Response) => {
- const result = await reportsService.getReportsById(req.params.id);
+  const result = await reportsService.getReportsById(req.params.id);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -40,7 +40,7 @@ const getReportsById = catchAsync(async (req: Request, res: Response) => {
 
 });
 const updateReports = catchAsync(async (req: Request, res: Response) => {
-const result = await reportsService.updateReports(req.params.id, req.body);
+  const result = await reportsService.updateReports(req.params.id, req.body);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -52,7 +52,7 @@ const result = await reportsService.updateReports(req.params.id, req.body);
 
 
 const deleteReports = catchAsync(async (req: Request, res: Response) => {
- const result = await reportsService.deleteReports(req.params.id);
+  const result = await reportsService.deleteReports(req.params.id);
   sendResponse(res, {
     statusCode: 200,
     success: true,

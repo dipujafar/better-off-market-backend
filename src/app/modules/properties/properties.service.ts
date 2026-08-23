@@ -5,6 +5,7 @@ import { IProperty } from './properties.interface';
 import { PROPERTY_STATUS, propertySearchableFields, STATUS } from './properties.constants';
 import { Property } from './properties.models';
 import { Types } from 'mongoose';
+import { FilterQuery } from 'mongoose';
 
 const createProperty = async (payload: Partial<IProperty>) => {
   const result = await Property.create(payload);
@@ -28,8 +29,7 @@ const getAllProperties = async (query: Record<string, unknown>) => {
   return { data, meta };
 };
 
-import { FilterQuery } from 'mongoose';
-import { User } from '../user/user.models';
+
 
 const getPriceDroppedProperties = async (query: Record<string, unknown>) => {
   const filter: FilterQuery<IProperty> = {
@@ -98,6 +98,29 @@ const getPropertyById = async (id: string) => {
   return result;
 };
 
+const getPropertiesBySeller = async (
+  sellerId: string,
+  query: Record<string, unknown>,
+) => {
+  const propertyQuery = new QueryBuilder(
+    Property.find({
+      seller: sellerId,
+      status: { $nin: [STATUS.pending, STATUS.rejected] },
+    }),
+    query,
+  )
+    .search(propertySearchableFields)
+    .filter()
+    .paginate()
+    .sort()
+    .fields();
+
+  const data = await propertyQuery.modelQuery;
+  const meta = await propertyQuery.countTotal();
+
+  return { data, meta };
+};
+
 const updateProperty = async (id: string, payload: Partial<IProperty>) => {
   const existing = await Property.findById(id);
   if (!existing) {
@@ -155,6 +178,7 @@ export const propertyService = {
   getPriceDroppedProperties,
   getMyListingProperties,
   getPropertyById,
+  getPropertiesBySeller,
   updateProperty,
   deleteProperty,
   approveProperty,
