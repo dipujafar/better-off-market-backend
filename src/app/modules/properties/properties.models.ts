@@ -203,6 +203,9 @@ const propertySchema: Schema<IProperty> = new Schema(
   },
 );
 
+
+propertySchema.index({ location: '2dsphere' });
+
 propertySchema.statics.IsPropertyExistId = async function (id: string) {
   return await Property.findById(id);
 };
@@ -224,7 +227,15 @@ propertySchema.pre('findOne', function (next) {
 });
 
 propertySchema.pre('aggregate', function (next) {
-  this.pipeline().unshift({ $match: { isDeleted: false } });
+  const pipeline = this.pipeline();
+  const firstStageIsGeoNear =
+    pipeline.length > 0 && Object.prototype.hasOwnProperty.call(pipeline[0], '$geoNear');
+
+  if (firstStageIsGeoNear) {
+    pipeline.splice(1, 0, { $match: { isDeleted: false } });
+  } else {
+    pipeline.unshift({ $match: { isDeleted: false } });
+  }
   next();
 });
 

@@ -28,6 +28,8 @@ router.post(
 );
 router.get('/', propertyController.getAllProperties);
 
+router.get('/web-content', propertyController.getAllPropertiesForWeb);
+
 router.get('/price-dropped', propertyController.getPriceDroppedProperties);
 
 router.get('/my-listing', auth(USER_ROLE.user), propertyController.getMyListingProperties);

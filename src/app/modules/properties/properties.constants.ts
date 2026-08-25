@@ -61,7 +61,7 @@ export const propertySearchableFields = [
 export const STATUS = {
     pending: "Pending",
     active: "Active",
-    under_contact: "Under Contact",
+    under_contact: "Under Contract",
     sold: "Sold",
     rejected: "Rejected"
 } as const

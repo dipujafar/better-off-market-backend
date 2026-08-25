@@ -26,6 +26,18 @@ const getAllProperties = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllPropertiesForWeb = catchAsync(async (req: Request, res: Response) => {
+
+  const result = await propertyService.getAllPropertiesForWeb(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Properties fetched successfully',
+    data: result.data,
+    meta: result.meta,
+  });
+})
+
 const getPriceDroppedProperties = catchAsync(async (req: Request, res: Response) => {
   const result = await propertyService.getPriceDroppedProperties(req.query);
   sendResponse(res, {
@@ -126,6 +138,7 @@ const rejectProperty = catchAsync(async (req: Request, res: Response) => {
 export const propertyController = {
   createProperty,
   getAllProperties,
+  getAllPropertiesForWeb,
   getPriceDroppedProperties,
   getMyListingProperties,
   getPropertyById,
