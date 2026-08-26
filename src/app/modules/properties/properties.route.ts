@@ -12,7 +12,7 @@ const router = Router();
 const upload = multer({ storage: memoryStorage() });
 
 const propertyUploadFields = upload.fields([
-    { name: 'photos', maxCount: 20 },
+    { name: 'photos', maxCount: 50 },
     { name: 'documents', maxCount: 10 },
     { name: 'assignableContractFile', maxCount: 1 },
 ]);

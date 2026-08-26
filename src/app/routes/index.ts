@@ -9,6 +9,7 @@ import { favoriteRoutes } from '../modules/favorite/favorite.route';
 import { reviewsRoutes } from '../modules/reviews/reviews.route';
 import { reportsRoutes } from '../modules/reports/reports.route';
 import { getInTouchRoutes } from '../modules/getInTouch/getInTouch.route';
+import { offerRoutes } from '../modules/offer/offer.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -51,6 +52,10 @@ const moduleRoutes = [
   {
     path: '/get-in-touch',
     route: getInTouchRoutes,
+  },
+  {
+    path: '/offers',
+    route: offerRoutes,
   }
 
 ];
