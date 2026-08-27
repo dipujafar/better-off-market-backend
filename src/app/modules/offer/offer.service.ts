@@ -5,6 +5,7 @@ import { IOfferTerms, OfferParty } from './offer.interface';
 import { OFFER_STATUS, CLOSED_OFFER_STATUSES } from './offer.constants';
 import { Offer } from './offer.models';
 import { Property } from '../properties/properties.models';
+import { STATUS } from '../properties/properties.constants';
 
 // Buyer submits the first offer on a property
 const createOffer = async (
@@ -15,6 +16,10 @@ const createOffer = async (
   const property = await Property.findById(propertyId);
   if (!property) {
     throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
+  }
+
+  if (property.status === STATUS.rejected || property.status === STATUS.sold || property.status === STATUS.pending) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Property is not available for offer');
   }
 
   if (property.seller.toString() === buyerId) {
@@ -254,6 +259,129 @@ const deleteOffer = async (offerId: string, userId: string) => {
   return result;
 };
 
+
+// Seller accepts the current terms on the table
+const acceptOffer = async (offerId: string, userId: string) => {
+  const offer = await Offer.findById(offerId);
+  if (!offer) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
+  }
+
+  if (offer.seller.toString() !== userId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Only the seller can accept this offer',
+    );
+  }
+
+  if (CLOSED_OFFER_STATUSES.includes(offer.status)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed');
+  }
+
+  // seller can only accept if the buyer made the last move —
+  // otherwise seller would be "accepting" their own pending counter
+  if (offer.lastActionBy !== 'buyer') {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Waiting for the buyer to respond to your counter',
+    );
+  }
+
+  const result = await Offer.findByIdAndUpdate(
+    offerId,
+    { status: OFFER_STATUS.accepted },
+    { new: true },
+  );
+
+  return result;
+};
+
+// Either party rejects the current terms on the table, closing the thread
+const rejectOffer = async (offerId: string, userId: string) => {
+  const offer = await Offer.findById(offerId);
+  if (!offer) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
+  }
+
+  const isBuyer = offer.buyer.toString() === userId;
+  const isSeller = offer.seller.toString() === userId;
+
+  if (!isBuyer && !isSeller) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You are not a party to this offer',
+    );
+  }
+
+  if (CLOSED_OFFER_STATUSES.includes(offer.status)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed');
+  }
+
+  const actingAs: OfferParty = isBuyer ? 'buyer' : 'seller';
+
+  // you can only reject terms the OTHER party proposed —
+  // rejecting your own pending offer is a withdrawal, not a rejection
+  if (offer.lastActionBy === actingAs) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You cannot reject your own pending offer — withdraw it instead',
+    );
+  }
+
+  const result = await Offer.findByIdAndUpdate(
+    offerId,
+    { status: OFFER_STATUS.rejected },
+    { new: true },
+  );
+
+  return result;
+};
+
+// The party who currently has an offer on the table pulls it back —
+// only allowed while the offer is still pending (i.e. no counter has been made yet)
+const withdrawOffer = async (offerId: string, userId: string) => {
+  const offer = await Offer.findById(offerId);
+  if (!offer) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
+  }
+
+  const isBuyer = offer.buyer.toString() === userId;
+  const isSeller = offer.seller.toString() === userId;
+
+  if (!isBuyer && !isSeller) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You are not a party to this offer',
+    );
+  }
+
+  if (offer.status !== OFFER_STATUS.pending) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Only a pending offer can be withdrawn',
+    );
+  }
+
+  const actingAs: OfferParty = isBuyer ? 'buyer' : 'seller';
+
+  // you can only withdraw terms YOU proposed
+  if (offer.lastActionBy !== actingAs) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You can only withdraw your own offer',
+    );
+  }
+
+  const result = await Offer.findByIdAndUpdate(
+    offerId,
+    { status: OFFER_STATUS.withdrawn },
+    { new: true },
+  );
+
+  return result;
+};
+
+
 export const offerService = {
   createOffer,
   counterOffer,
@@ -263,4 +391,7 @@ export const offerService = {
   getOfferById,
   updateOffer,
   deleteOffer,
+  acceptOffer,
+  rejectOffer,
+  withdrawOffer,
 };

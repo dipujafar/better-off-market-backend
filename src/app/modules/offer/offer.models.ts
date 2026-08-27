@@ -54,7 +54,7 @@ const offerHistorySchema = new Schema(
   { _id: false, timestamps: { createdAt: true, updatedAt: false } },
 );
 
-const currentTermsSchema = new Schema(offerTermsFields, { _id: false });
+const currentTermsSchema = new Schema(offerTermsFields, { _id: false, timestamps: { createdAt: true, updatedAt: false } });
 
 const offerSchema: Schema<IOffer> = new Schema(
   {

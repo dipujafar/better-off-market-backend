@@ -38,6 +38,9 @@ router.patch(
     validateRequest(offerValidation.counterOfferValidationSchema),
     offerController.counterOffer,
 );
+router.patch('/:id/accept', auth(...allRoles), offerController.acceptOffer);
+router.patch('/:id/reject', auth(...allRoles), offerController.rejectOffer);
+router.patch('/:id/withdraw', auth(...allRoles), offerController.withdrawOffer);
 
 router.get(
     '/',

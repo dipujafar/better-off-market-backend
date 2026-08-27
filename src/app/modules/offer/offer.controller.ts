@@ -102,6 +102,36 @@ const deleteOffer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const acceptOffer = catchAsync(async (req: Request, res: Response) => {
+  const result = await offerService.acceptOffer(req.params.id, req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Offer accepted successfully',
+    data: result,
+  });
+});
+
+const rejectOffer = catchAsync(async (req: Request, res: Response) => {
+  const result = await offerService.rejectOffer(req.params.id, req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Offer rejected successfully',
+    data: result,
+  });
+});
+
+const withdrawOffer = catchAsync(async (req: Request, res: Response) => {
+  const result = await offerService.withdrawOffer(req.params.id, req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Offer withdrawn successfully',
+    data: result,
+  });
+});
+
 export const offerController = {
   createOffer,
   counterOffer,
@@ -111,4 +141,7 @@ export const offerController = {
   getOfferById,
   updateOffer,
   deleteOffer,
+  acceptOffer,
+  rejectOffer,
+  withdrawOffer,
 };
