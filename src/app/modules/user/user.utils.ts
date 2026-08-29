@@ -32,3 +32,20 @@ export const checkUserExit = async (payload: IUser) => {
   // isExist is null/undefined → no user found, caller should proceed to create new user
   return null;
 };
+
+export const buildPropertyLabel = (p: {
+  propertyType: string;
+  streetAddress: string;
+  city: string;
+  state: string;
+}) => {
+  return `${p.propertyType} — ${p.streetAddress}, ${p.city}, ${p.state}`;
+};
+
+export const getYearRange = (year?: string) => {
+  const y = year ? Number(year) : new Date().getFullYear();
+  return {
+    start: new Date(`${y}-01-01T00:00:00.000Z`),
+    end: new Date(`${y + 1}-01-01T00:00:00.000Z`),
+  };
+};

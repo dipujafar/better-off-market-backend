@@ -256,6 +256,8 @@ const deleteOffer = async (offerId: string, userId: string) => {
     { new: true },
   );
 
+  await Property.findByIdAndUpdate(offer.property, { $inc: { totalOffers: -1 } });
+
   return result;
 };
 

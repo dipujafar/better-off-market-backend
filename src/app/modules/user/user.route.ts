@@ -68,6 +68,21 @@ router.get(
 
 router.get('/seller-profile/:id', userController.getSellerProfile);
 
+router.get(
+  '/seller-stats',
+  auth(
+    USER_ROLE.user
+  ),
+  userController.getSellerDashboardStats,
+);
+
+router.get(
+  '/seller/listing-analytics',
+  auth(USER_ROLE.user),
+  userController.getListingAnalytics,
+);
+
+
 router.get('/:id', userController.getUserById);
 
 

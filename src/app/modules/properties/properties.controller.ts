@@ -135,6 +135,26 @@ const rejectProperty = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const increaseViewCount = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.increaseViewCount(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Property view count increased successfully',
+    data: result,
+  });
+});
+
+const increaseRSVPCount = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.increaseRSVPCount(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Property RSVP count increased successfully',
+    data: result,
+  });
+});
+
 export const propertyController = {
   createProperty,
   getAllProperties,
@@ -145,6 +165,8 @@ export const propertyController = {
   getPropertiesBySeller,
   updateProperty,
   deleteProperty,
+  increaseViewCount,
+  increaseRSVPCount,
 
   // admin
   approveProperty,

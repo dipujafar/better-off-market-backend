@@ -48,11 +48,24 @@ router.patch(
     propertyController.updateProperty,
 );
 
-router.delete(
-    '/:id',
-    auth(USER_ROLE.user),
-    propertyController.deleteProperty,
-);
+router.patch(
+    '/increase-views/:id',
+    propertyController.increaseViewCount
+),
+
+    router.patch(
+        '/increase-rsvp/:id',
+        propertyController.increaseRSVPCount
+    ),
+
+
+    router.delete(
+        '/:id',
+        auth(USER_ROLE.user),
+        propertyController.deleteProperty,
+    );
+
+
 
 // ============================================== admin routes ================================================
 router.patch('/approve/:id', auth(USER_ROLE.admin), propertyController.approveProperty);

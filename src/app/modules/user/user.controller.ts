@@ -53,6 +53,29 @@ const getSellerProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSellerDashboardStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getSellerDashboardStats(req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Dashboard data fetched successfully',
+    data: result,
+  });
+});
+
+const getListingAnalytics = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getListingAnalytics(
+    req.user.userId,
+    req.query.year as string | undefined,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Listing analytics fetched successfully',
+    data: result,
+  });
+});
+
 const updateUser = catchAsync(async (req: Request, res: Response) => {
   if (req?.file) {
     req.body.profile = await uploadToS3({
@@ -112,6 +135,8 @@ export const userController = {
   getUserById,
   getMyProfile,
   getSellerProfile,
+  getSellerDashboardStats,
+  getListingAnalytics,
   updateUser,
   updateMyProfile,
   deleteUser,

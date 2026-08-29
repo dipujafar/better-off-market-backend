@@ -4,17 +4,22 @@ import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
 import { IUser } from './user.interface';
 import { User } from './user.models';
-import { checkUserExit } from './user.utils';
+import { buildPropertyLabel, checkUserExit, getYearRange } from './user.utils';
 import { sendNotificationMessage } from '../notification/notification.utils';
 import { Property } from '../properties/properties.models';
 import { STATUS } from '../properties/properties.constants';
 import { Types } from 'mongoose';
 import Reviews from '../reviews/reviews.models';
+import { Offer } from '../offer/offer.models';
+import { OFFER_STATUS } from '../offer/offer.constants';
+import { PropertyView } from '../PropertyView/PropertyView.model';
+import Favorite from '../favorite/favorite.models';
 
 export type IFilter = {
   searchTerm?: string;
   [key: string]: any;
 };
+
 const createUser = async (payload: IUser): Promise<IUser> => {
   const exitUser = await checkUserExit(payload);
 
@@ -50,7 +55,6 @@ const createUser = async (payload: IUser): Promise<IUser> => {
 
   return user;
 };
-
 
 const getUserById = async (id: string) => {
   const result = await User.findById(id).select('-password');
@@ -104,6 +108,166 @@ const getSellerProfile = async (sellerId: string) => {
   };
 };
 
+const getSellerDashboardStats = async (sellerId: string) => {
+  const sellerObjectId = new Types.ObjectId(sellerId);
+
+  const activeListings = await Property.countDocuments({
+    seller: sellerId,
+    status: { $in: [STATUS.active, STATUS.under_contact] },
+    isDeleted: false,
+  });
+
+  const newOffers = await Offer.countDocuments({
+    seller: sellerId,
+    status: OFFER_STATUS.pending,
+    isDeleted: false,
+  });
+
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const totalViewsThisWeek = await PropertyView.countDocuments({
+    seller: sellerObjectId,
+    viewedAt: { $gte: oneWeekAgo },
+  });
+
+  return {
+    activeListings,
+    newOffers,
+    totalViewsThisWeek,
+  };
+}
+
+const getListingAnalytics = async (sellerId: string, year?: string) => {
+  const sellerObjectId = new Types.ObjectId(sellerId);
+  const { start, end } = getYearRange(year);
+
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const totalViewsThisWeek = await PropertyView.countDocuments({
+    seller: sellerObjectId,
+    viewedAt: { $gte: oneWeekAgo },
+  });
+
+  const totalOffersReceived = await Offer.countDocuments({
+    seller: sellerId,
+    isDeleted: false,
+  });
+
+  const activePropertyMatch = {
+    seller: sellerObjectId,
+    status: { $in: [STATUS.active, STATUS.under_contact] },
+    isDeleted: false,
+  };
+
+  // Views — all active/under-contract listings, 0-view included, top 10 by count
+  const viewsAgg: {
+    _id: Types.ObjectId;
+    propertyType: string;
+    city: string;
+    state: string;
+    specifications: Record<string, unknown>;
+    count: number;
+  }[] = await Property.aggregate([
+    { $match: activePropertyMatch },
+    {
+      $lookup: {
+        from: 'propertyviews',
+        let: { propertyId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ['$property', '$$propertyId'] },
+              viewedAt: { $gte: start, $lt: end },
+            },
+          },
+        ],
+        as: 'viewDocs',
+      },
+    },
+    {
+      $project: {
+        propertyType: 1,
+        city: 1,
+        state: 1,
+        specifications: 1,
+        count: { $size: '$viewDocs' },
+      },
+    },
+    { $sort: { count: -1 } },
+    { $limit: 10 },
+  ]);
+
+  const views = viewsAgg.map((v) => ({
+    propertyId: v._id.toString(),
+    label: buildPropertyLabel({
+      ...v,
+      streetAddress: (v as any).streetAddress ?? '',
+    }),
+    count: v.count,
+  }));
+  const maxViewsCount = views[0]?.count || 0;
+
+  // Saves — same pattern: all active/under-contract listings, 0-save included, top 10 by count
+  const savesAgg: {
+    _id: Types.ObjectId;
+    propertyType: string;
+    city: string;
+    state: string;
+    specifications: Record<string, unknown>;
+    count: number;
+  }[] = await Property.aggregate([
+    { $match: activePropertyMatch },
+    {
+      $lookup: {
+        from: 'favorites',
+        let: { propertyId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ['$property', '$$propertyId'] },
+              isDeleted: false,
+              createdAt: { $gte: start, $lt: end },
+            },
+          },
+        ],
+        as: 'saveDocs',
+      },
+    },
+    {
+      $project: {
+        propertyType: 1,
+        city: 1,
+        state: 1,
+        specifications: 1,
+        count: { $size: '$saveDocs' },
+      },
+    },
+    { $sort: { count: -1 } },
+    { $limit: 10 },
+  ]);
+
+  const saves = savesAgg.map((s) => ({
+    propertyId: s._id.toString(),
+    label: buildPropertyLabel({
+      ...s,
+      streetAddress: (s as any).streetAddress ?? '',
+    }),
+    count: s.count,
+  }));
+  const maxSavesCount = saves[0]?.count || 0;
+
+  return {
+    totalViewsThisWeek,
+    totalOffersReceived,
+    views,
+    maxViewsCount,
+    saves,
+    maxSavesCount,
+  };
+};
+
 const updateUser = async (id: string, payload: Partial<IUser>) => {
   const user = await User.findByIdAndUpdate(id, payload, { new: true });
   if (!user) {
@@ -132,6 +296,8 @@ export const userService = {
   createUser,
   getSellerProfile,
   getUserById,
+  getSellerDashboardStats,
+  getListingAnalytics,
   updateUser,
   deleteUser,
 };

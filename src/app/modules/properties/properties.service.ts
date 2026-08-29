@@ -7,6 +7,7 @@ import { Property } from './properties.models';
 import { Types } from 'mongoose';
 import { FilterQuery, PipelineStage } from 'mongoose';
 import { PropertySearchQuery, toArray } from './properties.utils';
+import { PropertyView } from '../PropertyView/PropertyView.model';
 
 const createProperty = async (payload: Partial<IProperty>) => {
   const result = await Property.create(payload);
@@ -269,6 +270,30 @@ const rejectProperty = async (id: string) => {
   return result;
 }
 
+const increaseViewCount = async (id: string) => {
+  const result = await Property.findByIdAndUpdate(id, { $inc: { totalViews: 1 } }, { new: true });
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
+  }
+
+  PropertyView.create({
+    property: id,
+    seller: result.seller,
+  }).catch((err) => {
+    console.error('Failed to log property view:', err);
+  });
+
+  return result;
+}
+
+const increaseRSVPCount = async (id: string) => {
+  const result = await Property.findByIdAndUpdate(id, { $inc: { totalRsvp: 1 } }, { new: true });
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
+  }
+  return result;
+}
+
 export const propertyService = {
   createProperty,
   getAllProperties,
@@ -280,5 +305,7 @@ export const propertyService = {
   updateProperty,
   deleteProperty,
   approveProperty,
-  rejectProperty
+  rejectProperty,
+  increaseViewCount,
+  increaseRSVPCount
 };
