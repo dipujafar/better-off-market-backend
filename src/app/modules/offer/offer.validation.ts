@@ -5,6 +5,8 @@ import {
     POSSESSION_OPTIONS,
 } from './offer.constants';
 
+
+
 const currency = (label: string) =>
     z.coerce
         .number({ invalid_type_error: `${label} must be a number` })
@@ -16,6 +18,13 @@ const optionalDays = z.coerce
     .min(0)
     .max(365)
     .optional();
+
+const documentSchema = z.object({
+    name: z.string(),
+    size: z.string(),
+    updated: z.string(),
+    url: z.string(),
+});
 
 // Shared terms shape — used for both the initial offer and every counter
 const offerTermsSchema = z
@@ -62,16 +71,7 @@ const offerTermsSchema = z
         additionalTerms: z.string().max(3000).optional(),
         notesToSeller: z.string().max(2000).optional(),
 
-        supportingDocuments: z
-            .array(
-                z.object({
-                    name: z.string(),
-                    size: z.string(),
-                    updated: z.string(),
-                    url: z.string(),
-                }),
-            )
-            .optional(),
+
     })
     .superRefine((data, ctx) => {
         if (data.financingType !== 'cash' && !data.financingTerms?.trim()) {
@@ -155,6 +155,7 @@ const createOfferValidationSchema = z.object({
     body: z.object({
         property: z.string({ required_error: 'Property is required' }),
         terms: offerTermsSchema,
+        supportingDocuments: z.array(documentSchema).optional(),
     }),
 });
 
@@ -162,6 +163,7 @@ const createOfferValidationSchema = z.object({
 const counterOfferValidationSchema = z.object({
     body: z.object({
         terms: offerTermsSchema,
+        supportingDocuments: z.array(documentSchema).optional(),
     }),
 });
 

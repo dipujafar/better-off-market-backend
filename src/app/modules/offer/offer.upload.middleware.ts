@@ -27,7 +27,6 @@ const processOfferFiles = catchAsync(
             supportingDocuments?: Express.Multer.File[];
         };
 
-
         if (files?.supportingDocuments?.length) {
             req.body.supportingDocuments = await Promise.all(
                 files.supportingDocuments.map(async (file) => {
@@ -45,8 +44,6 @@ const processOfferFiles = catchAsync(
                 }),
             );
         }
-
-
 
         next();
     },

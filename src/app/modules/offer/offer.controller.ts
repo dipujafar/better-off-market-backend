@@ -9,6 +9,7 @@ const createOffer = catchAsync(async (req: Request, res: Response) => {
     req.user.userId,
     req.body.property,
     req.body.terms,
+    req.body.supportingDocuments,
   );
   sendResponse(res, {
     statusCode: httpStatus.OK,

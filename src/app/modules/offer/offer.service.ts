@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
 import QueryBuilder from '../../class/builder/QueryBuilder';
-import { IOfferTerms, OfferParty } from './offer.interface';
+import { IDocument, IOfferTerms, OfferParty } from './offer.interface';
 import { OFFER_STATUS, CLOSED_OFFER_STATUSES } from './offer.constants';
 import { Offer } from './offer.models';
 import { Property } from '../properties/properties.models';
@@ -12,6 +12,7 @@ const createOffer = async (
   buyerId: string,
   propertyId: string,
   terms: IOfferTerms,
+  supportingDocuments: IDocument[],
 ) => {
   const property = await Property.findById(propertyId);
   if (!property) {
@@ -49,6 +50,7 @@ const createOffer = async (
     currentRound: 1,
     lastActionBy: 'buyer',
     currentTerms: terms,
+    supportingDocuments: supportingDocuments || [],
     history: [
       {
         ...terms,
