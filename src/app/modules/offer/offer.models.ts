@@ -24,7 +24,7 @@ const offerTermsFields = {
   inspectionContingency: { type: String, enum: YES_NO, required: true },
   inspectionDays: { type: Number, default: null },
   appraisalContingency: { type: String, enum: YES_NO, required: true },
-  appraisalDays: { type: Number, default: null },
+  // appraisalDays: { type: Number, default: null },
 
   hasAgent: { type: String, enum: YES_NO, required: true },
   agentName: { type: String, default: null },
@@ -42,6 +42,8 @@ const offerTermsFields = {
 
   additionalTerms: { type: String, default: null },
   notesToSeller: { type: String, default: null },
+  notesToBuyer: { type: String, default: null },
+
 };
 
 const offerHistorySchema = new Schema(
@@ -50,6 +52,7 @@ const offerHistorySchema = new Schema(
     round: { type: Number, required: true },
     madeBy: { type: String, enum: MADE_BY, required: true },
     madeByUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    status: { type: String, enum: OFFER_STATUS_OPTIONS, default: OFFER_STATUS.pending, required: true },
   },
   { _id: false, timestamps: { createdAt: true, updatedAt: false } },
 );

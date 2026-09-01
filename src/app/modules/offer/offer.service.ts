@@ -54,6 +54,7 @@ const createOffer = async (
     history: [
       {
         ...terms,
+        status: OFFER_STATUS.pending,
         round: 1,
         madeBy: 'buyer',
         madeByUser: buyerId,
@@ -116,6 +117,7 @@ const counterOffer = async (
       $push: {
         history: {
           ...terms,
+          status: OFFER_STATUS.countered,
           round: nextRound,
           madeBy: actingAs,
           madeByUser: userId,

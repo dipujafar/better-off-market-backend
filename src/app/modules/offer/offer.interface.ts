@@ -24,7 +24,7 @@ export interface IOfferTerms {
     inspectionContingency: 'yes' | 'no';
     inspectionDays?: number;
     appraisalContingency: 'yes' | 'no';
-    appraisalDays?: number;
+    // appraisalDays?: number;
 
     hasAgent: 'yes' | 'no';
     agentName?: string;
@@ -42,11 +42,13 @@ export interface IOfferTerms {
 
     additionalTerms?: string;
     notesToSeller?: string;
+    notesToBuyer?: string;
 }
 
 export interface IOfferHistoryEntry extends IOfferTerms {
     round: number;
     madeBy: OfferParty;
+    status: OfferStatus;
     madeByUser: Types.ObjectId;
     createdAt: Date;
 }

@@ -47,7 +47,7 @@ const offerTermsSchema = z
         appraisalContingency: z.enum(['yes', 'no'], {
             required_error: 'Select an appraisal option',
         }),
-        appraisalDays: optionalDays,
+        // appraisalDays: optionalDays,
 
         hasAgent: z.enum(['yes', 'no'], {
             required_error: "Let us know if you're working with an agent",
@@ -70,6 +70,7 @@ const offerTermsSchema = z
 
         additionalTerms: z.string().max(3000).optional(),
         notesToSeller: z.string().max(2000).optional(),
+        notesToBuyer: z.string().max(2000).optional(),
 
 
     })
@@ -108,16 +109,16 @@ const offerTermsSchema = z
                 message: 'Enter the number of days for inspection',
             });
         }
-        if (
-            data.appraisalContingency === 'yes' &&
-            (data.appraisalDays === undefined || data.appraisalDays <= 0)
-        ) {
-            ctx.addIssue({
-                path: ['appraisalDays'],
-                code: z.ZodIssueCode.custom,
-                message: 'Enter the number of days for appraisal',
-            });
-        }
+        // if (
+        //     data.appraisalContingency === 'yes' &&
+        //     (data.appraisalDays === undefined || data.appraisalDays <= 0)
+        // ) {
+        //     ctx.addIssue({
+        //         path: ['appraisalDays'],
+        //         code: z.ZodIssueCode.custom,
+        //         message: 'Enter the number of days for appraisal',
+        //     });
+        // }
         if (data.hasAgent === 'yes') {
             if (!data.agentName?.trim()) {
                 ctx.addIssue({
