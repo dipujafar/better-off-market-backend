@@ -11,8 +11,6 @@ export const getMyChatList = async (
 
     const chats = await Chat.aggregate([
         { $match: { participants: userObjectId } },
-
-        // last message per chat
         {
             $lookup: {
                 from: 'messages',
@@ -26,8 +24,6 @@ export const getMyChatList = async (
             },
         },
         { $addFields: { lastMessage: { $arrayElemAt: ['$lastMessage', 0] } } },
-
-        // unread count per chat, for the CURRENT user only
         {
             $lookup: {
                 from: 'messages',
@@ -54,12 +50,9 @@ export const getMyChatList = async (
                 unreadMessageCount: { $ifNull: [{ $arrayElemAt: ['$unread.count', 0] }, 0] },
             },
         },
-
         { $sort: { 'lastMessage.createdAt': -1, updatedAt: -1 } },
         { $skip: skip },
         { $limit: limit },
-
-        // populate the OTHER participant's basic details
         {
             $lookup: {
                 from: 'users',
@@ -70,11 +63,8 @@ export const getMyChatList = async (
         },
         {
             $project: {
-                status: 1,
                 lastMessage: 1,
                 unreadMessageCount: 1,
-                createdAt: 1,
-                updatedAt: 1,
                 participants: {
                     $filter: {
                         input: '$participantDetails',
@@ -84,19 +74,49 @@ export const getMyChatList = async (
                 },
             },
         },
-        { $project: { 'participants.password': 0, 'participants.verification': 0, 'participants.device': 0 } },
+        {
+            $project: {
+                lastMessage: 1,
+                unreadMessageCount: 1,
+                'participants._id': 1,
+                'participants.name': 1,
+                'participants.profile': 1,
+            },
+        },
     ]);
 
     const totalCount = await Chat.countDocuments({ participants: userObjectId });
 
+    // reshape into the exact ChatListItem contract the frontend expects
+    const data = chats.map((c) => ({
+        chat: {
+            _id: c._id.toString(),
+            participants: c.participants.map((p: any) => ({
+                _id: p._id.toString(),
+                name: p.name,
+                profile: p.profile ?? null,
+            })),
+        },
+        message: c.lastMessage
+            ? {
+                text: c.lastMessage.text ?? '',
+                imageUrl: (c.lastMessage.images ?? []).map((img: any) => img.url),
+                sender: c.lastMessage.senderId.toString(),
+                createdAt: c.lastMessage.createdAt,
+                seen: c.lastMessage.seen,
+            }
+            : null,
+        unreadMessageCount: c.unreadMessageCount,
+    }));
+
     return {
-        chats,
+        chats: data,
         pagination: {
             page,
             limit,
             total: totalCount,
             totalPage: Math.ceil(totalCount / limit),
-            hasMore: skip + chats.length < totalCount,
+            hasMore: skip + data.length < totalCount,
         },
     };
 };

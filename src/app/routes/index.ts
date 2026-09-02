@@ -10,6 +10,8 @@ import { reviewsRoutes } from '../modules/reviews/reviews.route';
 import { reportsRoutes } from '../modules/reports/reports.route';
 import { getInTouchRoutes } from '../modules/getInTouch/getInTouch.route';
 import { offerRoutes } from '../modules/offer/offer.route';
+import { uploadRoutes } from '../modules/upload/upload.route';
+import { statsRoutes } from '../modules/stats/stats.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -56,7 +58,16 @@ const moduleRoutes = [
   {
     path: '/offers',
     route: offerRoutes,
+  },
+  {
+    path: '/upload',
+    route: uploadRoutes,
+  },
+  {
+    path: '/stats',
+    route: statsRoutes,
   }
+
 
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));

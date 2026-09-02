@@ -48,14 +48,6 @@ export const propertySearchableFields = [
 ];
 
 
-// export const PROPERTY_STATUS = [
-//     'draft',
-//     'pending_review',
-//     'active',
-//     'under_contract',
-//     'sold',
-//     'archived',
-// ] as const;
 
 
 export const STATUS = {

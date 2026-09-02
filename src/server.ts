@@ -2,12 +2,19 @@
 import app from './app';
 import { createServer, type Server } from 'http';
 import colors from 'colors';
-import initializeSocket from './app/socket';
+import mongoose from 'mongoose';
 import config from './app/config';
-
+import initializeSocket from './app/socket';
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const socketServer = createServer(app);
 let server: Server;
+
+const connectDB = async () => {
+  await mongoose.connect(config.database_url as string);
+  console.log(colors.cyan.bold('🗄️  MongoDB connected'));
+};
 
 const startSocket = () =>
   initializeSocket(socketServer).then((io) => {
@@ -38,7 +45,8 @@ const shutdown = (reason: string) => (err?: unknown) => {
   }
 };
 
-startSocket()
+connectDB()
+  .then(startSocket)
   .then(startHttpServer)
   .then((s) => {
     server = s;

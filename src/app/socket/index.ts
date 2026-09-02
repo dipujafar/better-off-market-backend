@@ -1,40 +1,40 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { getSocketIdByUserId, getUserIdBySocketId, removeUserSocket, setUserSocket } from './utils/onlineUsers';
-import getReceiverId from './services/getReceiverId';
-import sendMessage from './handlers/sendMessage.handlers';
-import SeenMessageHandlers from './handlers/seenMessages.handlers';
-import getChatList from './handlers/chatList.handlers';
-import MessagePageHandlers from './handlers/massagePage.handlers';
-import { getOnlineUserIds } from './handlers/onlineUser.handlers';
 import { socketAuthMiddleware } from './middleware/auth.socket';
+import { broadcastOnlineUsers } from './handlers/onlineUser.handlers';
+import MessagePageHandlers from './handlers/massagePage.handlers';
+import getChatList from './handlers/chatList.handlers';
+import SeenMessageHandlers from './handlers/seenMessages.handlers';
+import sendMessage from './handlers/sendMessage.handlers';
+import getReceiverId from './services/getReceiverId';
+import {
+    setUserSocket,
+    removeUserSocket,
+    getUserIdBySocketId,
+    getSocketIdByUserId,
+} from './utils/onlineUsers';
 
-
-
-const handleTypingEvent = async (
+const handleTyping = async (
     io: Server,
     socket: Socket,
     chatId: string,
-    event: 'typing' | 'stopTyping',
+    isTyping: boolean,
 ) => {
     const receiverId = await getReceiverId(chatId, socket.data.userId);
     if (!receiverId) return;
 
-    const userSocketId = getSocketIdByUserId(receiverId);
-    if (!userSocketId) return;
+    const receiverSocketId = getSocketIdByUserId(receiverId);
+    if (!receiverSocketId) return;
 
-    const message =
-        event === 'typing'
-            ? `${socket.data.name} is typing...`
-            : `${socket.data.name} stopped typing...`;
-
-    io.to(userSocketId).emit(event, { message });
+    // namespaced per-chat, matches frontend's `typing::${chatId}` listener
+    io.to(receiverSocketId).emit(`typing::${chatId}`, {
+        userId: socket.data.userId,
+        isTyping,
+    });
 };
 
 const initializeSocket = async (server: HttpServer) => {
     const io = new Server(server, { cors: { origin: '*' } });
-
-    // No Redis adapter — single-instance only. See note at top of this response.
 
     io.use(socketAuthMiddleware);
 
@@ -47,10 +47,9 @@ const initializeSocket = async (server: HttpServer) => {
             return;
         }
 
-        console.log(`✅ Connected: userId=${userId} socketId=${socket.id}`);
+        // console.log(`✅ Connected: userId=${userId} socketId=${socket.id}`);
         setUserSocket(userId, socket.id);
-
-        socket.on('getOnlineUsers', () => getOnlineUserIds(io));
+        broadcastOnlineUsers(io); // auto-broadcast — frontend never asks explicitly
 
         socket.on('message_page', (payload, callback) =>
             MessagePageHandlers(io, payload, userId, callback),
@@ -68,15 +67,10 @@ const initializeSocket = async (server: HttpServer) => {
             sendMessage(io, payload, socket.data, callback),
         );
 
-        socket.on('typing', ({ chatId }: { chatId: string }) =>
-            handleTypingEvent(io, socket, chatId, 'typing').catch((err) =>
+        // single unified event, matches frontend's { chatId, isTyping } payload
+        socket.on('typing', ({ chatId, isTyping }: { chatId: string; isTyping: boolean }) =>
+            handleTyping(io, socket, chatId, isTyping).catch((err) =>
                 console.error('typing error:', err),
-            ),
-        );
-
-        socket.on('stopTyping', ({ chatId }: { chatId: string }) =>
-            handleTypingEvent(io, socket, chatId, 'stopTyping').catch((err) =>
-                console.error('stopTyping error:', err),
             ),
         );
 
@@ -84,7 +78,8 @@ const initializeSocket = async (server: HttpServer) => {
             const uid = getUserIdBySocketId(socket.id);
             if (uid) {
                 removeUserSocket(uid, socket.id);
-                console.log(`❌ Disconnected: userId=${uid} socketId=${socket.id}`);
+                broadcastOnlineUsers(io); // also update everyone when someone goes offline
+                // console.log(`❌ Disconnected: userId=${uid} socketId=${socket.id}`);
             }
         });
     });

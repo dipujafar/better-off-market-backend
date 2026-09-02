@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { getAllOnlineUserIds } from '../utils/onlineUsers';
 
-export const getOnlineUserIds = (io: Server) => {
+export const broadcastOnlineUsers = (io: Server) => {
     const userIds = getAllOnlineUserIds();
-    io.emit('onlineUsersList', userIds);
+    io.emit('onlineUser', userIds); // renamed from onlineUsersList to match frontend
 };

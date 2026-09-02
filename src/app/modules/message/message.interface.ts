@@ -12,6 +12,8 @@ export interface IMessage {
     text?: string;
     images?: IMessageImage[];
     seen: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 export type MessageModel = Model<IMessage>;

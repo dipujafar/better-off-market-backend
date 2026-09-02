@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import callbackFn from '../utils/callbackFn';
 import { User } from '../../modules/user/user.models';
 import { Message } from '../../modules/message/message.model';
+import { serializeMessage } from '../utils/serializeMessage';
 import { getSocketIdByUserId } from '../utils/onlineUsers';
 
 const MessagePageHandlers = async (
@@ -19,10 +20,7 @@ const MessagePageHandlers = async (
     const skip = (page - 1) * limit;
 
     try {
-        const receiverDetails = await User.findById(userId).select(
-            'name email profile role',
-        );
-
+        const receiverDetails = await User.findById(userId).select('name email profile role');
         if (!receiverDetails) {
             return callbackFn(callback, { success: false, message: 'User not found!' });
         }
@@ -48,17 +46,14 @@ const MessagePageHandlers = async (
         };
 
         const [messages, totalMessages] = await Promise.all([
-            Message.find(filter)
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(limit)
-                .populate('senderId', 'name role email profile')
-                .populate('receiverId', 'name role email profile'),
+            Message.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
             Message.countDocuments(filter),
         ]);
 
+        const serialized = messages.map(serializeMessage).reverse();
+
         const response = {
-            data: messages.reverse(), // oldest-first for chat display, like the reference
+            data: serialized,
             meta: {
                 page,
                 limit,
