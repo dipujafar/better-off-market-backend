@@ -14,4 +14,17 @@ const getPlatformStats = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-export const statsController = { getPlatformStats };
+const getUserOverview = catchAsync(async (req: Request, res: Response) => {
+    const result = await statsService.getUserOverview(
+        req.query.year as string | undefined,
+    );
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'User overview fetched successfully',
+        data: result,
+    });
+});
+
+
+export const statsController = { getPlatformStats, getUserOverview };

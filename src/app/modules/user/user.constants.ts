@@ -15,4 +15,5 @@ export enum Login_With {
 export const gender = ['Male', 'Female', 'Others'];
 export const Role = ['admin', 'super_admin', 'sub_admin', 'user'];
 
-export const userSearchableFields = ['shopId', 'email'];
+export const userSearchableFields = ['email', 'name', 'phoneNumber', "location"];
+

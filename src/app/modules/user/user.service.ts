@@ -13,12 +13,9 @@ import Reviews from '../reviews/reviews.models';
 import { Offer } from '../offer/offer.models';
 import { OFFER_STATUS } from '../offer/offer.constants';
 import { PropertyView } from '../PropertyView/PropertyView.model';
-import Favorite from '../favorite/favorite.models';
+import QueryBuilder from '../../class/builder/QueryBuilder';
+import { userSearchableFields } from './user.constants';
 
-export type IFilter = {
-  searchTerm?: string;
-  [key: string]: any;
-};
 
 const createUser = async (payload: IUser): Promise<IUser> => {
   const exitUser = await checkUserExit(payload);
@@ -55,6 +52,19 @@ const createUser = async (payload: IUser): Promise<IUser> => {
 
   return user;
 };
+
+const getAllUsers = async (query: Record<string, unknown>) => {
+  const propertyQuery = new QueryBuilder(User.find(), query)
+    .search(userSearchableFields)
+    .filter()
+    .paginate()
+    .sort()
+    .fields();
+
+  const data = await propertyQuery.modelQuery;
+  const meta = await propertyQuery.countTotal();
+  return { data, meta };
+}
 
 const getUserById = async (id: string) => {
   const result = await User.findById(id).select('-password');
@@ -293,6 +303,7 @@ const deleteUser = async (id: string) => {
 
 
 export const userService = {
+  getAllUsers,
   createUser,
   getSellerProfile,
   getUserById,

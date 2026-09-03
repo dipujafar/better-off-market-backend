@@ -23,6 +23,17 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getAllUsers(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Users fetched successfully',
+    data: result?.data,
+    meta: result?.meta
+  });
+});
+
 const getUserById = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.getUserById(req.params.id);
   sendResponse(res, {
@@ -132,6 +143,7 @@ const deleteMYAccount = catchAsync(async (req: Request, res: Response) => {
 
 export const userController = {
   createUser,
+  getAllUsers,
   getUserById,
   getMyProfile,
   getSellerProfile,

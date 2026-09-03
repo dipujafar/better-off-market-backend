@@ -85,6 +85,8 @@ router.get(
 
 router.get('/:id', userController.getUserById);
 
+router.get('/', auth(USER_ROLE.admin), userController.getAllUsers);
+
 
 
 
