@@ -26,6 +26,20 @@ const getAllProperties = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllPropertiesForDashboard = catchAsync(async (req: Request, res: Response) => {
+  const result = await propertyService.getAllPropertiesForDashboard(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Properties fetched successfully',
+    data: {
+      properties: result.data,
+      statusCounts: result.statusCounts,
+    },
+    meta: result.meta,
+  });
+});
+
 const getAllPropertiesForWeb = catchAsync(async (req: Request, res: Response) => {
 
   const result = await propertyService.getAllPropertiesForWeb(req.query);
@@ -158,6 +172,7 @@ const increaseRSVPCount = catchAsync(async (req: Request, res: Response) => {
 export const propertyController = {
   createProperty,
   getAllProperties,
+  getAllPropertiesForDashboard,
   getAllPropertiesForWeb,
   getPriceDroppedProperties,
   getMyListingProperties,

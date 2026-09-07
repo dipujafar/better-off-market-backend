@@ -31,6 +31,41 @@ const getAllProperties = async (query: Record<string, unknown>) => {
   return { data, meta };
 };
 
+const getAllPropertiesForDashboard = async (query: Record<string, unknown>) => {
+  const propertyQuery = new QueryBuilder(Property.find(), query)
+    .search(propertySearchableFields)
+    .filter()
+    .paginate()
+    .sort()
+    .fields();
+
+  const data = await propertyQuery.modelQuery;
+  const meta = await propertyQuery.countTotal();
+
+  const counts: { _id: string; count: number }[] = await Property.aggregate([
+    { $match: { isDeleted: false } },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
+
+  const countMap: Record<string, number> = {};
+  let all = 0;
+
+  for (const c of counts) {
+    countMap[c._id] = c.count;
+    all += c.count;
+  }
+
+  const statusCounts: Record<string, number> = { all };
+  for (const key of PROPERTY_STATUS) {
+    const label = STATUS[key]; // "pending" -> "Pending"
+
+    console.log(key)
+    statusCounts[label] = countMap[label] || 0;
+  }
+
+  return { data, meta, statusCounts };
+};
+
 
 const getAllPropertiesForWeb = async (query: PropertySearchQuery) => {
   const page = Number(query.page) || 1;
@@ -297,6 +332,7 @@ const increaseRSVPCount = async (id: string) => {
 export const propertyService = {
   createProperty,
   getAllProperties,
+  getAllPropertiesForDashboard,
   getAllPropertiesForWeb,
   getPriceDroppedProperties,
   getMyListingProperties,

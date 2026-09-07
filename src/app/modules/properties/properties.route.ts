@@ -28,6 +28,8 @@ router.post(
 );
 router.get('/', propertyController.getAllProperties);
 
+router.get('/dashboard', auth(USER_ROLE.admin), propertyController.getAllPropertiesForDashboard);
+
 router.get('/web-content', propertyController.getAllPropertiesForWeb);
 
 router.get('/price-dropped', propertyController.getPriceDroppedProperties);
