@@ -32,7 +32,7 @@ const getAllProperties = async (query: Record<string, unknown>) => {
 };
 
 const getAllPropertiesForDashboard = async (query: Record<string, unknown>) => {
-  const propertyQuery = new QueryBuilder(Property.find(), query)
+  const propertyQuery = new QueryBuilder(Property.find().populate('seller'), query)
     .search(propertySearchableFields)
     .filter()
     .paginate()
@@ -59,7 +59,6 @@ const getAllPropertiesForDashboard = async (query: Record<string, unknown>) => {
   for (const key of PROPERTY_STATUS) {
     const label = STATUS[key]; // "pending" -> "Pending"
 
-    console.log(key)
     statusCounts[label] = countMap[label] || 0;
   }
 
