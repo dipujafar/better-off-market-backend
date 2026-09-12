@@ -163,6 +163,27 @@ const getMyOffers = async (
   return { data, meta };
 };
 
+const getOfferStats = async () => {
+  const statusAgg: { _id: string; count: number }[] = await Offer.aggregate([
+    { $match: { isDeleted: false } },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
+
+  const countMap = new Map(statusAgg.map((s) => [s._id, s.count]));
+
+  const totalOffers = statusAgg.reduce((sum, s) => sum + s.count, 0);
+
+  return {
+    totalOffers,
+    pending:
+      (countMap.get(OFFER_STATUS.pending) || 0) +
+      (countMap.get(OFFER_STATUS.countered) || 0),
+    accepted: countMap.get(OFFER_STATUS.accepted) || 0,
+    rejected: countMap.get(OFFER_STATUS.rejected) || 0,
+    withdrawn: countMap.get(OFFER_STATUS.withdrawn) || 0,
+  };
+};
+
 // offers I (seller) have received
 const getReceivedOffers = async (
   sellerId: string,
@@ -400,4 +421,5 @@ export const offerService = {
   acceptOffer,
   rejectOffer,
   withdrawOffer,
+  getOfferStats
 };

@@ -12,6 +12,7 @@ import { getInTouchRoutes } from '../modules/getInTouch/getInTouch.route';
 import { offerRoutes } from '../modules/offer/offer.route';
 import { uploadRoutes } from '../modules/upload/upload.route';
 import { statsRoutes } from '../modules/stats/stats.route';
+import { dashboardRoutes } from '../dashboard/dashboard.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -66,9 +67,11 @@ const moduleRoutes = [
   {
     path: '/stats',
     route: statsRoutes,
+  },
+  {
+    path: '/dashboard',
+    route: dashboardRoutes,
   }
-
-
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));
 

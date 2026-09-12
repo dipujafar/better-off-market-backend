@@ -178,6 +178,7 @@ const getListingAnalytics = async (sellerId: string, year?: string) => {
     city: string;
     state: string;
     specifications: Record<string, unknown>;
+    streetAddress: string;
     count: number;
   }[] = await Property.aggregate([
     { $match: activePropertyMatch },
@@ -202,6 +203,7 @@ const getListingAnalytics = async (sellerId: string, year?: string) => {
         city: 1,
         state: 1,
         specifications: 1,
+        streetAddress: 1,
         count: { $size: '$viewDocs' },
       },
     },

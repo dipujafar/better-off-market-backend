@@ -56,6 +56,12 @@ router.get(
     offerController.getReceivedOffers,
 );
 
+router.get(
+    '/stats',
+    auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
+    offerController.getOfferStats,
+);
+
 router.patch(
     '/:id',
     auth(...allRoles),

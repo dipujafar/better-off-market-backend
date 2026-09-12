@@ -55,6 +55,16 @@ const getMyOffers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getOfferStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await offerService.getOfferStats();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Offer stats fetched successfully',
+    data: result,
+  });
+});
+
 const getReceivedOffers = catchAsync(async (req: Request, res: Response) => {
   const result = await offerService.getReceivedOffers(
     req.user.userId,
@@ -145,4 +155,5 @@ export const offerController = {
   acceptOffer,
   rejectOffer,
   withdrawOffer,
+  getOfferStats
 };
