@@ -13,6 +13,7 @@ import { offerRoutes } from '../modules/offer/offer.route';
 import { uploadRoutes } from '../modules/upload/upload.route';
 import { statsRoutes } from '../modules/stats/stats.route';
 import { dashboardRoutes } from '../dashboard/dashboard.route';
+import { faqsRoutes } from '../modules/faqs/faqs.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -67,6 +68,10 @@ const moduleRoutes = [
   {
     path: '/stats',
     route: statsRoutes,
+  },
+  {
+    path: '/faqs',
+    route: faqsRoutes,
   },
   {
     path: '/dashboard',
