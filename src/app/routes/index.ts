@@ -14,6 +14,7 @@ import { uploadRoutes } from '../modules/upload/upload.route';
 import { statsRoutes } from '../modules/stats/stats.route';
 import { dashboardRoutes } from '../dashboard/dashboard.route';
 import { faqsRoutes } from '../modules/faqs/faqs.route';
+import { chatRoutes } from '../modules/chat/chat.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -76,6 +77,10 @@ const moduleRoutes = [
   {
     path: '/dashboard',
     route: dashboardRoutes,
+  },
+  {
+    path: '/chats',
+    route: chatRoutes,
   }
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));

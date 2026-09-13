@@ -4,6 +4,8 @@ export interface IChat {
     _id?: Types.ObjectId;
     participants: Types.ObjectId[];
     status: 'accepted';
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 export type ChatModel = Model<IChat>;
