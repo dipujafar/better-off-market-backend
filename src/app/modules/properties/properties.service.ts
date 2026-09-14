@@ -252,6 +252,27 @@ const getPropertiesBySeller = async (
 
   return { data, meta };
 };
+const getPropertiesBySellerForDashboard = async (
+  sellerId: string,
+  query: Record<string, unknown>,
+) => {
+  const propertyQuery = new QueryBuilder(
+    Property.find({
+      seller: sellerId,
+    }),
+    query,
+  )
+    .search(propertySearchableFields)
+    .filter()
+    .paginate()
+    .sort()
+    .fields();
+
+  const data = await propertyQuery.modelQuery;
+  const meta = await propertyQuery.countTotal();
+
+  return { data, meta };
+};
 
 const updateProperty = async (id: string, payload: Partial<IProperty>) => {
   const existing = await Property.findById(id);
@@ -337,6 +358,7 @@ export const propertyService = {
   getMyListingProperties,
   getPropertyById,
   getPropertiesBySeller,
+  getPropertiesBySellerForDashboard,
   updateProperty,
   deleteProperty,
   approveProperty,

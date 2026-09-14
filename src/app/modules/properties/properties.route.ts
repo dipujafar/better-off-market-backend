@@ -36,6 +36,8 @@ router.get('/price-dropped', propertyController.getPriceDroppedProperties);
 
 router.get('/my-listing', auth(USER_ROLE.user), propertyController.getMyListingProperties);
 
+router.get('/seller/:sellerId/dashboard', propertyController.getPropertiesBySellerForDashboard);
+
 router.get('/seller/:sellerId', propertyController.getPropertiesBySeller);
 
 router.get('/:id', propertyController.getPropertyById);
