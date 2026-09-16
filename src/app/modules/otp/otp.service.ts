@@ -123,7 +123,8 @@ const resendOtp = async (email: string) => {
       .readFileSync(otpEmailPath, 'utf8')
       .replace('{{otp}}', otp)
       .replace('{{fullName}}', user?.name)
-      .replace('{{email}}', user?.email),
+      .replace('{{email}}', user?.email)
+      .replace('{{year}}', new Date().getFullYear().toString()),
   );
 
   return { token };

@@ -8,12 +8,26 @@ import { Types } from 'mongoose';
 import { FilterQuery, PipelineStage } from 'mongoose';
 import { PropertySearchQuery, toArray } from './properties.utils';
 import { PropertyView } from '../PropertyView/PropertyView.model';
+import { User } from '../user/user.models';
+import { sendNotificationMessage } from '../notification/notification.utils';
 
-const createProperty = async (payload: Partial<IProperty>) => {
+const createProperty = async (payload: IProperty) => {
   const result = await Property.create(payload);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Property creation failed');
   }
+
+  const admin = await User.GetAdminUser();
+
+  const notificationPayload = {
+    message: `A new property has been added`,
+    description: ` A new property has been added from ${payload?.streetAddress}, ${payload?.city}, ${payload?.state}, ${payload?.zipCode}, ${payload?.county}. Please review it and take appropriate action.`,
+    userId: admin?._id?.toString()!,
+    fcmToken: admin?.fcmToken,
+    link: `/listings/${result._id}`,
+  };
+
+  sendNotificationMessage(notificationPayload);
 
   return result;
 };
@@ -160,8 +174,6 @@ const getAllPropertiesForWeb = async (query: PropertySearchQuery) => {
   };
 };
 
-
-
 const getPriceDroppedProperties = async (query: Record<string, unknown>) => {
   const filter: FilterQuery<IProperty> = {
     oldListingPrice: { $ne: null },
@@ -303,24 +315,47 @@ const deleteProperty = async (id: string) => {
   return result;
 };
 
-
 // ======================================= admin services =======================================
 const approveProperty = async (id: string) => {
   const result = await Property.findByIdAndUpdate(id, { status: STATUS.active }, { new: true });
-
-
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
   }
+
+  const seller = await User.GetUserById(result.seller.toString());
+
+  const notificationPayload = {
+    message: `Approved your listed property`,
+    description: `Your listed property from ${result?.streetAddress}, ${result?.city}, ${result?.state}, ${result?.zipCode}, ${result?.county} has been approved by the admin.`,
+    userId: seller?._id?.toString()!,
+    fcmToken: seller?.fcmToken,
+    link: `/properties-list/${result._id}`,
+  };
+
+  sendNotificationMessage(notificationPayload);
+
   return result;
 }
 
 const rejectProperty = async (id: string) => {
+
   const result = await Property.findByIdAndUpdate(id, { status: STATUS.rejected }, { new: true });
 
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
   }
+
+  const seller = await User.GetUserById(result.seller.toString());
+
+  const notificationPayload = {
+    message: `Rejected your listed property`,
+    description: `Your listed property from ${result?.streetAddress}, ${result?.city}, ${result?.state}, ${result?.zipCode}, ${result?.county} has been rejected by the admin.`,
+    userId: seller?._id?.toString()!,
+    fcmToken: seller?.fcmToken,
+    link: `/properties-list/${result._id}`,
+  };
+
+  sendNotificationMessage(notificationPayload);
 
   return result;
 }

@@ -41,7 +41,7 @@ const login = async (payload: TLogin, req: Request) => {
   }
 
   if (!user?.user?.verification?.status) {
-    throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
+    throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified. Please signup again.');
   }
   const jwtPayload: { userId: string; role: string, name: string, email: string } = {
     userId: user?.user?._id?.toString() as string,

@@ -5,7 +5,7 @@ export interface IUser {
   status: string;
   name: string;
   email: string;
-  fcmToken: string;
+  fcmToken?: string;
   bio: string;
   company: string;
   phoneNumber?: string;
@@ -63,6 +63,7 @@ export interface UserModel extends Model<IUser> {
   IsUserExistId(id: string): Promise<IUser>;
   IsUserExistUserName(userName: string): Promise<IUser>;
   GetAdminUser(): Promise<IUser>;
+  GetUserById(id: string): Promise<IUser>;
 
   isPasswordMatched(
     plainTextPassword: string,

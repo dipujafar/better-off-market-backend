@@ -6,6 +6,7 @@ export interface TNotification {
   description?: string;
   // refference: ObjectId;
   date?: Date;
+  link?: string;
   read: boolean;
   isDeleted: boolean;
 }

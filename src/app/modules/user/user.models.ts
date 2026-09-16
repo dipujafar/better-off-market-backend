@@ -210,6 +210,10 @@ userSchema.statics.GetAdminUser = async function () {
   return await User.findOne({ role: USER_ROLE.admin });
 };
 
+userSchema.statics.GetUserById = async function (id: string) {
+  return await User.findById(id).select('-password');
+}
+
 userSchema.post('save', function (doc, next) {
   doc.password = '';
   doc.verification.otp = 0;

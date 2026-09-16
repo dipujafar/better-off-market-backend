@@ -43,12 +43,13 @@ const createUser = async (payload: IUser): Promise<IUser> => {
   const admin = await User.GetAdminUser();
   const notificationPayload = {
     message: `New User Created An Account`,
-    description: `A new user has registered with the name ${user.name}.`,
+    description: `A new user has registered with the name ${user.name} and email ${user.email}.`,
     userId: admin?._id?.toString()!,
-    fcmToken: admin?.fcmToken
+    fcmToken: admin?.fcmToken,
+    link: "/users"
   };
 
-  await sendNotificationMessage(notificationPayload);
+  sendNotificationMessage(notificationPayload);
 
   return user;
 };
