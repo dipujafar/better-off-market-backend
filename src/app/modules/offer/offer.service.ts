@@ -6,6 +6,7 @@ import { OFFER_STATUS, CLOSED_OFFER_STATUSES } from './offer.constants';
 import { Offer } from './offer.models';
 import { Property } from '../properties/properties.models';
 import { STATUS } from '../properties/properties.constants';
+import { generateOfferPdf } from './offer.utils';
 
 // Buyer submits the first offer on a property
 const createOffer = async (
@@ -289,38 +290,47 @@ const deleteOffer = async (offerId: string, userId: string) => {
 
 // Seller accepts the current terms on the table
 const acceptOffer = async (offerId: string, userId: string) => {
-  const offer = await Offer.findById(offerId);
+  const offer = await Offer.findById({
+    _id: offerId,
+  }).populate('property').populate('buyer').populate('seller');
+
+
+
   if (!offer) {
     throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
   }
 
-  if (offer.seller.toString() !== userId) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      'Only the seller can accept this offer',
-    );
-  }
+  // if (offer?.seller?._id?.toString() !== userId) {
+  //   throw new AppError(
+  //     httpStatus.FORBIDDEN,
+  //     'Only the seller can accept this offer',
+  //   );
+  // }
 
   if (CLOSED_OFFER_STATUSES.includes(offer.status)) {
     throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed');
   }
 
-  // seller can only accept if the buyer made the last move —
-  // otherwise seller would be "accepting" their own pending counter
-  if (offer.lastActionBy !== 'buyer') {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Waiting for the buyer to respond to your counter',
-    );
-  }
+  // // seller can only accept if the buyer made the last move —
+  // // otherwise seller would be "accepting" their own pending counter
+  // if (offer.lastActionBy !== 'buyer') {
+  //   throw new AppError(
+  //     httpStatus.BAD_REQUEST,
+  //     'Waiting for the buyer to respond to your counter',
+  //   );
+  // }
 
-  const result = await Offer.findByIdAndUpdate(
-    offerId,
-    { status: OFFER_STATUS.accepted },
-    { new: true },
-  );
+  const pdf = await generateOfferPdf(offer);
 
-  return result;
+  console.log(pdf);
+
+  // const result = await Offer.findByIdAndUpdate(
+  //   offerId,
+  //   { status: OFFER_STATUS.accepted },
+  //   { new: true },
+  // );
+
+  // return result;
 };
 
 // Either party rejects the current terms on the table, closing the thread
