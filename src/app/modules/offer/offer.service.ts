@@ -7,6 +7,8 @@ import { Offer } from './offer.models';
 import { Property } from '../properties/properties.models';
 import { STATUS } from '../properties/properties.constants';
 import { generateOfferPdf } from './offer.utils';
+import { Agreement } from '../agreement/agreement.model';
+import mongoose from 'mongoose';
 
 // Buyer submits the first offer on a property
 const createOffer = async (
@@ -290,49 +292,60 @@ const deleteOffer = async (offerId: string, userId: string) => {
 
 // Seller accepts the current terms on the table
 const acceptOffer = async (offerId: string, userId: string) => {
-  const offer = await Offer.findById({
-    _id: offerId,
-  }).populate('property').populate('buyer').populate('seller');
+  const session = await mongoose.startSession();
 
+  try {
+    session.startTransaction();
 
+    const offer = await Offer.findById(offerId)
+      .populate('property')
+      .populate('buyer')
+      .populate('seller')
+      .session(session);
 
-  if (!offer) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
+    if (!offer) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
+    }
+
+    if (CLOSED_OFFER_STATUSES.includes(offer.status)) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed');
+    }
+
+    const offerAcceptedBy =
+      offer?.buyer?._id?.toString() === userId ? 'buyer' : 'seller';
+
+    // PDF generation happens outside the DB transaction (it's not a DB write),
+    // but if it throws, the catch block below still aborts before any writes commit
+    const pdf = await generateOfferPdf(offer);
+
+    const result = await Offer.findByIdAndUpdate(
+      offerId,
+      { status: OFFER_STATUS.accepted, offerAcceptedBy },
+      { new: true, session },
+    );
+
+    await Agreement.create(
+      [
+        {
+          offer: offer._id,
+          property: offer.property._id,
+          buyer: offer.buyer._id,
+          seller: offer.seller._id,
+          agreementMainDoc: pdf,
+        },
+      ],
+      { session },
+    );
+
+    await session.commitTransaction();
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  // if (offer?.seller?._id?.toString() !== userId) {
-  //   throw new AppError(
-  //     httpStatus.FORBIDDEN,
-  //     'Only the seller can accept this offer',
-  //   );
-  // }
-
-  if (CLOSED_OFFER_STATUSES.includes(offer.status)) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed');
-  }
-
-  // // seller can only accept if the buyer made the last move —
-  // // otherwise seller would be "accepting" their own pending counter
-  // if (offer.lastActionBy !== 'buyer') {
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     'Waiting for the buyer to respond to your counter',
-  //   );
-  // }
-
-  const pdf = await generateOfferPdf(offer);
-
-  console.log(pdf);
-
-  // const result = await Offer.findByIdAndUpdate(
-  //   offerId,
-  //   { status: OFFER_STATUS.accepted },
-  //   { new: true },
-  // );
-
-  // return result;
 };
-
 // Either party rejects the current terms on the table, closing the thread
 const rejectOffer = async (offerId: string, userId: string) => {
   const offer = await Offer.findById(offerId);

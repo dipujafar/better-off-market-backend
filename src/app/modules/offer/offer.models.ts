@@ -65,6 +65,12 @@ const offerSchema: Schema<IOffer> = new Schema(
     buyer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     seller: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 
+
+    // offer accept part 
+    offerAcceptedBy: { type: String, enum: MADE_BY, required: true },
+    buyerAddAuthorizedSigner: { type: Boolean, default: false },
+    sellerAddAuthorizedSigner: { type: Boolean, default: false },
+
     status: {
       type: String,
       enum: OFFER_STATUS_OPTIONS,

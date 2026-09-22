@@ -59,6 +59,13 @@ export interface IOffer {
     buyer: Types.ObjectId;
     seller: Types.ObjectId;
 
+    // offer accept part 
+    offerAcceptedBy: string;
+    buyerAddAuthorizedSigner: boolean;
+    sellerAddAuthorizedSigner: boolean;
+
+
+
     status: OfferStatus;
     currentRound: number;
     lastActionBy: OfferParty;

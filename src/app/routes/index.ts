@@ -16,6 +16,7 @@ import { dashboardRoutes } from '../dashboard/dashboard.route';
 import { faqsRoutes } from '../modules/faqs/faqs.route';
 import { chatRoutes } from '../modules/chat/chat.route';
 import { contactRouter } from '../modules/contactUs/contactUs.route';
+import { agreementRoute } from '../modules/agreement/agreement.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -87,6 +88,10 @@ const moduleRoutes = [
     path: '/contact-us',
     route: contactRouter,
   },
+  {
+    path: '/agreements',
+    route: agreementRoute,
+  }
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));
 
