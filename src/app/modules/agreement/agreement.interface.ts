@@ -3,8 +3,8 @@ import { AGREEMENT_STATUS } from "./agreement.constants";
 
 
 export interface IAuthorizeSigner {
-    name: String,
-    email: String,
+    name: string,
+    email: string,
     isSigned: boolean
 }
 

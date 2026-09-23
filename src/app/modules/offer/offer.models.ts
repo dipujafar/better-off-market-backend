@@ -68,8 +68,8 @@ const offerSchema: Schema<IOffer> = new Schema(
 
     // offer accept part 
     offerAcceptedBy: { type: String, enum: MADE_BY, required: true },
-    buyerAddAuthorizedSigner: { type: Boolean, default: false },
-    sellerAddAuthorizedSigner: { type: Boolean, default: false },
+    isBuyerAddedAuthorizedSigner: { type: Boolean, default: false },
+    isSellerAddedAuthorizedSigner: { type: Boolean, default: false },
 
     status: {
       type: String,

@@ -8,7 +8,7 @@ import { agreementValidation } from "./agreement.validation";
 const router = Router();
 router.patch("/seller-authorize/:id", validateRequest(agreementValidation.addAuthorizedSignerValidation), auth(USER_ROLE.user), agreementController.addSellerAuthorizedSigner);
 
-router.patch("/buyer-authorize/:id", validateRequest(agreementValidation.addAuthorizedSignerValidation), auth(USER_ROLE.user), agreementController.addSellerAuthorizedSigner);
+router.patch("/buyer-authorize/:id", validateRequest(agreementValidation.addAuthorizedSignerValidation), auth(USER_ROLE.user), agreementController.addBuyerAuthorizedSigner);
 
 
 

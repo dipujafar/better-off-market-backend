@@ -61,8 +61,8 @@ export interface IOffer {
 
     // offer accept part 
     offerAcceptedBy: string;
-    buyerAddAuthorizedSigner: boolean;
-    sellerAddAuthorizedSigner: boolean;
+    isBuyerAddedAuthorizedSigner: boolean;
+    isSellerAddedAuthorizedSigner: boolean;
 
 
 

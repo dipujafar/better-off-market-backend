@@ -9,6 +9,7 @@ import { STATUS } from '../properties/properties.constants';
 import { generateOfferPdf } from './offer.utils';
 import { Agreement } from '../agreement/agreement.model';
 import mongoose from 'mongoose';
+import { sendNotificationMessage } from '../notification/notification.utils';
 
 // Buyer submits the first offer on a property
 const createOffer = async (
@@ -297,6 +298,7 @@ const acceptOffer = async (offerId: string, userId: string) => {
   try {
     session.startTransaction();
 
+
     const offer = await Offer.findById(offerId)
       .populate('property')
       .populate('buyer')
@@ -307,9 +309,17 @@ const acceptOffer = async (offerId: string, userId: string) => {
       throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
     }
 
+
+
     if (CLOSED_OFFER_STATUSES.includes(offer.status)) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed');
+      throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed or on process');
     }
+
+    await Property.findOneAndUpdate(
+      { _id: offer.property._id },
+      { status: STATUS.under_contact },
+      { session },
+    )
 
     const offerAcceptedBy =
       offer?.buyer?._id?.toString() === userId ? 'buyer' : 'seller';
@@ -335,7 +345,26 @@ const acceptOffer = async (offerId: string, userId: string) => {
         },
       ],
       { session },
+
     );
+
+
+    // // const admin = await User.GetAdminUser();
+    const buyer = offer?.buyer as any;
+    const seller = offer?.seller as any;
+    const property = offer?.property as any;
+
+    const notificationPayload = {
+      message: offerAcceptedBy === 'seller' ? `Your offer has been accepted by seller. Please add your authorized signer` : `Your offer has been accepted by buyer. Please add your authorized signer`,
+      description: `The offer has been accepted by ${offerAcceptedBy === 'seller' ? "buyer" : "seller"} ${seller?.name} for the property  ${property?.streetAddress}, ${property?.city}, ${property?.state}, ${property?.zipCode}, ${property?.county}.`,
+      userId: offerAcceptedBy === 'seller' ? buyer?._id?.toString() : seller?._id?.toString(),
+      fcmToken: offerAcceptedBy === 'seller' ? buyer?.fcmToken : seller?.fcmToken,
+      link: offerAcceptedBy === 'seller' ? `/review-sent-offer?offer=${offer?._id}` : `/user/offers-received/${offer?._id}`,
+    };
+
+    sendNotificationMessage(notificationPayload);
+
+
 
     await session.commitTransaction();
     return result;
