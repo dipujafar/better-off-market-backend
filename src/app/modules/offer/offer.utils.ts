@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import moment from 'moment';
 import { PDFDocument } from 'pdf-lib';
 import { IOffer } from './offer.interface';
 import { uploadToS3 } from '../../utils/s3';
@@ -19,15 +18,6 @@ const formatCurrency = (value: number | string | null | undefined): string => {
     })}`;
 };
 
-const getDisplayName = (person: unknown): string => {
-    if (!person || typeof person !== 'object') {
-        return '';
-    }
-
-    const record = person as Record<string, unknown>;
-    const name = record.name ?? record.fullName;
-    return String(name ?? '').trim();
-};
 
 const getPropertyAddress = (property: unknown): string => {
     if (!property || typeof property !== 'object') {
@@ -74,21 +64,19 @@ export const generateOfferPdf = async (offer: IOffer): Promise<string | undefine
             }
         };
 
-        const buyerName = getDisplayName(buyer);
-        const sellerName = getDisplayName(seller);
+
         const propertyAddress = getPropertyAddress(property);
         const offerAmount = Number(terms?.offerAmount ?? property?.listingPrice ?? 0);
         const commissionAmount = offerAmount * 0.02;
 
-        console.log(formatCurrency(offerAmount), formatCurrency(commissionAmount), offerAmount, commissionAmount, propertyAddress);
 
         setFieldText('property_address', propertyAddress);
         setFieldText('property_amount', formatCurrency(offerAmount));
         setFieldText('property_amount_with_commission', formatCurrency(commissionAmount));
-        setFieldText('buyer_1_name', buyerName);
+        setFieldText('buyer_1_name', '');
         setFieldText('buyer_1_signature', '');
         setFieldText('buyer_1_signature_date', '');
-        setFieldText('buyer_2_name', sellerName);
+        setFieldText('buyer_2_name', '');
         setFieldText('buyer_2_signature', '');
         setFieldText('buyer_2_signature_date', '');
 

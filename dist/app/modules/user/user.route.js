@@ -43,8 +43,9 @@ router.patch('/:id', (0, auth_1.default)(user_constants_1.USER_ROLE.admin, user_
 router.delete('/delete-my-account', (0, auth_1.default)(user_constants_1.USER_ROLE.admin, user_constants_1.USER_ROLE.sub_admin, user_constants_1.USER_ROLE.super_admin, user_constants_1.USER_ROLE.user), user_controller_1.userController.deleteMYAccount);
 router.delete('/:id', (0, auth_1.default)(user_constants_1.USER_ROLE.admin, user_constants_1.USER_ROLE.sub_admin, user_constants_1.USER_ROLE.super_admin), user_controller_1.userController.deleteUser);
 router.get('/my-profile', (0, auth_1.default)(user_constants_1.USER_ROLE.admin, user_constants_1.USER_ROLE.sub_admin, user_constants_1.USER_ROLE.super_admin, user_constants_1.USER_ROLE.user), user_controller_1.userController.getMyProfile);
-router.get('/user-chart-overview', (0, auth_1.default)(user_constants_1.USER_ROLE.admin), user_controller_1.userController.userOverviewChart);
-router.get('/dashboard-stats', (0, auth_1.default)(user_constants_1.USER_ROLE.admin), user_controller_1.userController.getDashboardStats);
+router.get('/seller-profile/:id', user_controller_1.userController.getSellerProfile);
+router.get('/seller-stats', (0, auth_1.default)(user_constants_1.USER_ROLE.user), user_controller_1.userController.getSellerDashboardStats);
+router.get('/seller/listing-analytics', (0, auth_1.default)(user_constants_1.USER_ROLE.user), user_controller_1.userController.getListingAnalytics);
 router.get('/:id', user_controller_1.userController.getUserById);
-router.get('/', (0, auth_1.default)(user_constants_1.USER_ROLE.admin), user_controller_1.userController.getAllUser);
+router.get('/', (0, auth_1.default)(user_constants_1.USER_ROLE.admin), user_controller_1.userController.getAllUsers);
 exports.userRoutes = router;

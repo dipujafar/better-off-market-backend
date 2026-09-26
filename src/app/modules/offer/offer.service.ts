@@ -297,8 +297,6 @@ const acceptOffer = async (offerId: string, userId: string) => {
 
   try {
     session.startTransaction();
-
-
     const offer = await Offer.findById(offerId)
       .populate('property')
       .populate('buyer')

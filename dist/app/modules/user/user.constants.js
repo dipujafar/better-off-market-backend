@@ -16,4 +16,4 @@ var Login_With;
 })(Login_With || (exports.Login_With = Login_With = {}));
 exports.gender = ['Male', 'Female', 'Others'];
 exports.Role = ['admin', 'super_admin', 'sub_admin', 'user'];
-exports.userSearchableFields = ['shopId', 'email'];
+exports.userSearchableFields = ['email', 'name', 'phoneNumber', "location"];

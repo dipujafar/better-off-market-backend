@@ -26,6 +26,10 @@ const NotificationSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false,
     },
+    link: {
+        type: String,
+        default: '',
+    },
     isDeleted: {
         type: Boolean,
         default: false,

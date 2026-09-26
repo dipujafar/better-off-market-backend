@@ -5,7 +5,9 @@ import { AGREEMENT_STATUS, AGREEMENT_STATUS_OPTIONS } from "./agreement.constant
 const authorizeSigner = new Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
-    isSigned: { type: Boolean, default: false }
+    isSigned: { type: Boolean, default: false },
+    signatureImage: { type: String, default: null },
+    signedAt: { type: Date, default: null },
 })
 
 const agreementSchema = new Schema<IAgreement>({

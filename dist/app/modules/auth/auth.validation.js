@@ -6,22 +6,12 @@ const user_constants_1 = require("../user/user.constants");
 exports.loginZodValidationSchema = zod_1.z.object({
     body: zod_1.z
         .object({
-        phoneNumber: zod_1.z.string().optional(),
-        email: zod_1.z.string().email('Invalid email format!').optional(),
+        email: zod_1.z.string().email('Invalid email format!'),
         fcmToken: zod_1.z.string().optional(),
         password: zod_1.z.string({
             required_error: 'Password is required!',
         }),
     })
-        .superRefine((data, ctx) => {
-        if (!data.phoneNumber && !data.email) {
-            ctx.addIssue({
-                code: zod_1.z.ZodIssueCode.custom,
-                message: 'Either phone number or email is required!',
-                path: ['phoneNumber'],
-            });
-        }
-    }),
 });
 const refreshTokenValidationSchema = zod_1.z.object({
     cookies: zod_1.z.object({

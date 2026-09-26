@@ -5,7 +5,9 @@ import { AGREEMENT_STATUS } from "./agreement.constants";
 export interface IAuthorizeSigner {
     name: string,
     email: string,
-    isSigned: boolean
+    isSigned: boolean,
+    signatureImage?: string,
+    signedAt?: Date | string | null,
 }
 
 export interface IAgreement {

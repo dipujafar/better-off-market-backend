@@ -59,9 +59,17 @@ const markAsDone = (id) => __awaiter(void 0, void 0, void 0, function* () {
     }, { new: true });
     return result;
 });
+const deleteNotification = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield notification_model_1.Notification.findByIdAndDelete(id);
+    if (!result) {
+        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'Notification deletion failed');
+    }
+    return result;
+});
 exports.notificationServices = {
     createNotificationInDb,
     insertNotificationIntoDb,
     getAllNotifications,
+    deleteNotification,
     markAsDone,
 };

@@ -29,7 +29,7 @@ const path_1 = __importDefault(require("path"));
 // import firebaseAdmin from '../../utils/firebase';
 // Login
 const login = (payload, req) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     const user = yield user_models_1.User.isUserExist(payload === null || payload === void 0 ? void 0 : payload.phoneNumber, payload === null || payload === void 0 ? void 0 : payload.email);
     if (!(user === null || user === void 0 ? void 0 : user.user)) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'User not found');
@@ -41,15 +41,17 @@ const login = (payload, req) => __awaiter(void 0, void 0, void 0, function* () {
         throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'Password does not match');
     }
     if (!((_c = (_b = user === null || user === void 0 ? void 0 : user.user) === null || _b === void 0 ? void 0 : _b.verification) === null || _c === void 0 ? void 0 : _c.status)) {
-        throw new AppError_1.default(http_status_1.default.FORBIDDEN, 'User account is not verified');
+        throw new AppError_1.default(http_status_1.default.FORBIDDEN, 'User account is not verified. Please signup again.');
     }
     const jwtPayload = {
         userId: (_e = (_d = user === null || user === void 0 ? void 0 : user.user) === null || _d === void 0 ? void 0 : _d._id) === null || _e === void 0 ? void 0 : _e.toString(),
-        role: (_f = user === null || user === void 0 ? void 0 : user.user) === null || _f === void 0 ? void 0 : _f.role,
+        name: (_f = user === null || user === void 0 ? void 0 : user.user) === null || _f === void 0 ? void 0 : _f.name,
+        email: (_g = user === null || user === void 0 ? void 0 : user.user) === null || _g === void 0 ? void 0 : _g.email,
+        role: (_h = user === null || user === void 0 ? void 0 : user.user) === null || _h === void 0 ? void 0 : _h.role,
     };
     const accessToken = (0, auth_utils_1.createToken)(jwtPayload, config_1.default.jwt_access_secret, config_1.default.jwt_access_expires_in);
     const refreshToken = (0, auth_utils_1.createToken)(jwtPayload, config_1.default.jwt_refresh_secret, config_1.default.jwt_refresh_expires_in);
-    const ip = ((_g = req.headers['x-forwarded-for']) === null || _g === void 0 ? void 0 : _g.toString().split(',')[0]) ||
+    const ip = ((_j = req.headers['x-forwarded-for']) === null || _j === void 0 ? void 0 : _j.toString().split(',')[0]) ||
         req.socket.remoteAddress ||
         '';
     const userAgent = req.headers['user-agent'] || '';
@@ -63,7 +65,7 @@ const login = (payload, req) => __awaiter(void 0, void 0, void 0, function* () {
             device: result.device.model || 'Desktop',
             lastLogin: new Date().toISOString(),
         } }, (payload.fcmToken && { fcmToken: payload.fcmToken }));
-    yield user_models_1.User.findByIdAndUpdate((_h = user === null || user === void 0 ? void 0 : user.user) === null || _h === void 0 ? void 0 : _h._id, data, {
+    yield user_models_1.User.findByIdAndUpdate((_k = user === null || user === void 0 ? void 0 : user.user) === null || _k === void 0 ? void 0 : _k._id, data, {
         new: true,
         upsert: false,
     });
@@ -180,6 +182,8 @@ const refreshToken = (token) => __awaiter(void 0, void 0, void 0, function* () {
     }
     const jwtPayload = {
         userId: (_a = user === null || user === void 0 ? void 0 : user._id) === null || _a === void 0 ? void 0 : _a.toString(),
+        name: user.name,
+        email: user.email,
         role: user.role,
     };
     const accessToken = (0, auth_utils_1.createToken)(jwtPayload, config_1.default.jwt_access_secret, config_1.default.jwt_access_expires_in);
@@ -187,146 +191,6 @@ const refreshToken = (token) => __awaiter(void 0, void 0, void 0, function* () {
         accessToken,
     };
 });
-// const googleLogin = async (payload: any, req: Request) => {
-//   try {
-//     const decodedToken: DecodedIdToken | null = await firebaseAdmin
-//       .auth()
-//       .verifyIdToken(payload?.token);
-//     console.log(JSON.stringify(decodedToken));
-//     if (!decodedToken)
-//       throw new AppError(httpStatus.BAD_REQUEST, 'Invalid token');
-//     if (!decodedToken?.email_verified) {
-//       throw new AppError(
-//         httpStatus?.BAD_REQUEST,
-//         'your mail not verified from google',
-//       );
-//     }
-//     const isExist: IUser | null = await User.isUserExist(
-//       decodedToken.email as string,
-//     );
-//     if (isExist) {
-//       if (isExist?.status !== 'active')
-//         throw new AppError(httpStatus.FORBIDDEN, 'This account is Blocked');
-//       // Login_With.credentials ||
-//       if (isExist?.loginWth === (Login_With.facebook || Login_With.apple))
-//         throw new AppError(
-//           httpStatus.FORBIDDEN,
-//           `This account in not registered with google login. try it ${isExist?.loginWth}`,
-//         );
-//       if (isExist?.isDeleted)
-//         throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
-//       if (!isExist?.verification?.status) {
-//         throw new AppError(
-//           httpStatus.FORBIDDEN,
-//           'User account is not verified',
-//         );
-//       }
-//       const jwtPayload: { userId: string; role: string } = {
-//         userId: isExist?._id?.toString() as string,
-//         role: isExist?.role,
-//       };
-//       const accessToken = createToken(
-//         jwtPayload,
-//         config.jwt_access_secret as string,
-//         config.jwt_access_expires_in as string,
-//       );
-//       const refreshToken = createToken(
-//         jwtPayload,
-//         config.jwt_refresh_secret as string,
-//         config.jwt_refresh_expires_in as string,
-//       );
-//       if (isExist) {
-//         const ip =
-//           req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-//           req.socket.remoteAddress ||
-//           '';
-//         const userAgent = req.headers['user-agent'] || '';
-//         //@ts-ignore
-//         const parser = new UAParser(userAgent);
-//         const result = parser.getResult();
-//         const device = {
-//           ip: ip,
-//           browser: result.browser.name,
-//           os: result.os.name,
-//           device: result.device.model || 'Desktop',
-//           lastLogin: new Date().toISOString(),
-//         };
-//         await User.findByIdAndUpdate(
-//           isExist?._id,
-//           { device },
-//           { new: true, upsert: false },
-//         );
-//       }
-//       return {
-//         user: isExist,
-//         accessToken,
-//         refreshToken,
-//       };
-//     }
-//     const user = await User.create({
-//       name: decodedToken?.name,
-//       email: decodedToken?.email,
-//       profile: decodedToken?.picture,
-//       expireAt: null,
-//       phoneNumber: decodedToken?.phone_number,
-//       role: payload?.role ?? USER_ROLE.user,
-//       loginWth: Login_With.google,
-//       'verification.status': true,
-//     });
-//     if (!user)
-//       throw new AppError(
-//         httpStatus?.BAD_REQUEST,
-//         'user account creation failed',
-//       );
-//     const jwtPayload: { userId: string; role: string } = {
-//       userId: user?._id?.toString() as string,
-//       role: user?.role,
-//     };
-//     const accessToken = createToken(
-//       jwtPayload,
-//       config.jwt_access_secret as string,
-//       config.jwt_access_expires_in as string,
-//     );
-//     const refreshToken = createToken(
-//       jwtPayload,
-//       config.jwt_refresh_secret as string,
-//       config.jwt_refresh_expires_in as string,
-//     );
-//     if (isExist) {
-//       const ip =
-//         req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-//         req.socket.remoteAddress ||
-//         '';
-//       const userAgent = req.headers['user-agent'] || '';
-//       //@ts-ignore
-//       const parser = new UAParser(userAgent);
-//       const result = parser.getResult();
-//       const data = {
-//         device: {
-//           ip: ip,
-//           browser: result.browser.name,
-//           os: result.os.name,
-//           device: result.device.model || 'Desktop',
-//           lastLogin: new Date().toISOString(),
-//         },
-//       };
-//       await User.findByIdAndUpdate(user?._id, data, {
-//         new: true,
-//         upsert: false,
-//       });
-//     }
-//     return {
-//       user: user,
-//       accessToken,
-//       refreshToken,
-//     };
-//   } catch (error: any) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       error?.message ?? 'Login failed Server Error',
-//     );
-//   }
-// };
 const resetPasswordLink = (token) => __awaiter(void 0, void 0, void 0, function* () {
     let decode;
     try {

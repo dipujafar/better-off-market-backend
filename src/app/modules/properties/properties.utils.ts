@@ -17,3 +17,16 @@ export const toArray = (value?: string | string[]): string[] | undefined => {
     if (Array.isArray(value)) return value;
     return value.split(',').map((v) => v.trim()).filter(Boolean);
 };
+
+export const propertyAddress = (
+    streetAddress?: string,
+    city?: string,
+    state?: string,
+    zipCode?: string,
+    county?: string
+) => {
+
+    return [streetAddress, city, state, zipCode, county]
+        .filter(Boolean)
+        .join(", ");
+};

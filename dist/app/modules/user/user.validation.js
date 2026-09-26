@@ -9,8 +9,6 @@ const guestValidationSchema = zod_1.z.object({
         email: zod_1.z
             .string({ required_error: 'Email is required' })
             .email({ message: 'Invalid email address' }),
-        phoneNumber: zod_1.z.string({ required_error: 'Phone number is required' }),
-        location: zod_1.z.string({ required_error: 'Location is required' }),
         role: zod_1.z.enum([...user_constants_1.Role]).default(user_constants_1.USER_ROLE.user),
         password: zod_1.z.string({ required_error: 'Password is required' }),
     }),

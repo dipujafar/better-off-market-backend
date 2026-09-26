@@ -13,4 +13,5 @@ router.post('/', (0, auth_1.default)(user_constants_1.USER_ROLE.user, user_const
 // router.post("/",)
 router.get('/', (0, auth_1.default)(user_constants_1.USER_ROLE.user, user_constants_1.USER_ROLE.admin, user_constants_1.USER_ROLE.sub_admin, user_constants_1.USER_ROLE.super_admin), notification_controller_1.notificationControllers.getAllNotifications);
 router.patch('/', (0, auth_1.default)(user_constants_1.USER_ROLE.user, user_constants_1.USER_ROLE.admin, user_constants_1.USER_ROLE.sub_admin, user_constants_1.USER_ROLE.super_admin), notification_controller_1.notificationControllers.markAsDone);
+router.delete('/:id', (0, auth_1.default)(user_constants_1.USER_ROLE.user, user_constants_1.USER_ROLE.admin, user_constants_1.USER_ROLE.sub_admin, user_constants_1.USER_ROLE.super_admin), notification_controller_1.notificationControllers.deleteNotification);
 exports.notificationRoutes = router;

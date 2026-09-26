@@ -21,7 +21,7 @@ firebase_admin_1.default.initializeApp({
     credential: firebase_admin_1.default.credential.cert(firebase_json_1.default),
 });
 const sendNotification = (fcmToken, payload) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('sending message');
+    console.log("notification sending ...");
     try {
         const response = yield firebase_admin_1.default.messaging().sendEachForMulticast({
             tokens: fcmToken,
@@ -41,7 +41,7 @@ const sendNotification = (fcmToken, payload) => __awaiter(void 0, void 0, void 0
                 },
             },
         });
-        console.log(response === null || response === void 0 ? void 0 : response.responses, 'from send notification');
+        console.log("notification sent");
         return response;
     }
     catch (error) {

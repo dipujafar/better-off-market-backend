@@ -37,6 +37,18 @@ const contentsSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
+contentsSchema.pre('find', function (next) {
+    this.where({ isDeleted: false });
+    next();
+});
+contentsSchema.pre('findOne', function (next) {
+    this.where({ isDeleted: false });
+    next();
+});
+contentsSchema.pre('aggregate', function (next) {
+    this.pipeline().unshift({ $match: { isDeleted: false } });
+    next();
+});
 // filter out deleted documents
 const Contents = (0, mongoose_1.model)('Contents', contentsSchema);
 exports.default = Contents;

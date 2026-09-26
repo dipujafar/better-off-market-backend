@@ -19,7 +19,6 @@ const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
 const http_status_1 = __importDefault(require("http-status"));
 const s3_1 = require("../../utils/s3");
 const otp_service_1 = require("../otp/otp.service");
-const user_models_1 = require("./user.models");
 const createUser = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (req.file) {
         req.body.profile = yield (0, s3_1.uploadToS3)({
@@ -36,17 +35,18 @@ const createUser = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
         data: { user: result, otpToken: sendOtp },
     });
 }));
-const getAllUser = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield user_service_1.userService.getAllUser(req.query);
+const getAllUsers = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield user_service_1.userService.getAllUsers(req.query);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_1.default.OK,
         success: true,
         message: 'Users fetched successfully',
-        data: result,
+        data: result === null || result === void 0 ? void 0 : result.data,
+        meta: result === null || result === void 0 ? void 0 : result.meta
     });
 }));
 const getUserById = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield user_service_1.userService.geUserById(req.params.id);
+    const result = yield user_service_1.userService.getUserById(req.params.id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_1.default.OK,
         success: true,
@@ -56,7 +56,7 @@ const getUserById = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, vo
 }));
 const getMyProfile = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const result = yield user_service_1.userService.geUserById((_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId);
+    const result = yield user_service_1.userService.getUserById((_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_1.default.OK,
         success: true,
@@ -64,8 +64,34 @@ const getMyProfile = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
         data: result,
     });
 }));
+const getSellerProfile = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield user_service_1.userService.getSellerProfile(req.params.id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_1.default.OK,
+        success: true,
+        message: 'Seller profile fetched successfully',
+        data: result,
+    });
+}));
+const getSellerDashboardStats = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield user_service_1.userService.getSellerDashboardStats(req.user.userId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_1.default.OK,
+        success: true,
+        message: 'Dashboard data fetched successfully',
+        data: result,
+    });
+}));
+const getListingAnalytics = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield user_service_1.userService.getListingAnalytics(req.user.userId, req.query.year);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_1.default.OK,
+        success: true,
+        message: 'Listing analytics fetched successfully',
+        data: result,
+    });
+}));
 const updateUser = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    yield user_models_1.User.findById(req.params.id);
     if (req === null || req === void 0 ? void 0 : req.file) {
         req.body.profile = yield (0, s3_1.uploadToS3)({
             file: req.file,
@@ -82,7 +108,6 @@ const updateUser = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
 }));
 const updateMyProfile = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    yield user_models_1.User.findById(req.user.userId);
     if (req === null || req === void 0 ? void 0 : req.file) {
         req.body.profile = yield (0, s3_1.uploadToS3)({
             file: req.file,
@@ -116,33 +141,16 @@ const deleteMYAccount = (0, catchAsync_1.default)((req, res) => __awaiter(void 0
         data: result,
     });
 }));
-const userOverviewChart = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield user_service_1.userService.getUserOverviewChart(req.query);
-    (0, sendResponse_1.default)(res, {
-        statusCode: http_status_1.default.OK,
-        success: true,
-        message: 'User overview chart successfully',
-        data: result,
-    });
-}));
-const getDashboardStats = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield user_service_1.userService.getDashboardStats();
-    (0, sendResponse_1.default)(res, {
-        statusCode: http_status_1.default.OK,
-        success: true,
-        message: 'User statistics fetched successfully',
-        data: result,
-    });
-}));
 exports.userController = {
     createUser,
-    getAllUser,
+    getAllUsers,
     getUserById,
     getMyProfile,
+    getSellerProfile,
+    getSellerDashboardStats,
+    getListingAnalytics,
     updateUser,
     updateMyProfile,
     deleteUser,
     deleteMYAccount,
-    userOverviewChart,
-    getDashboardStats,
 };

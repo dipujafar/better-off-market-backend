@@ -10,6 +10,12 @@ router.patch("/seller-authorize/:id", validateRequest(agreementValidation.addAut
 
 router.patch("/buyer-authorize/:id", validateRequest(agreementValidation.addAuthorizedSignerValidation), auth(USER_ROLE.user), agreementController.addBuyerAuthorizedSigner);
 
+router.patch("/:id/sign", validateRequest(agreementValidation.signAgreementValidation), agreementController.signAgreement);
+
+router.get("/", auth(USER_ROLE.user), agreementController.getAgreements);
+
+router.get("/:id", agreementController.getAgreementByOfferId);
+
 
 
 export const agreementRoute = router;

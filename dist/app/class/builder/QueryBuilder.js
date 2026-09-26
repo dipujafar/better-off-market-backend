@@ -38,6 +38,25 @@ class QueryBuilder {
         }
         return this;
     }
+    searchWithRef(localFields, refs) {
+        var _a;
+        const searchTerm = (_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.searchTerm;
+        if (!searchTerm)
+            return this;
+        const localConditions = localFields.map(field => ({
+            [field]: { $regex: searchTerm, $options: 'i' },
+        }));
+        const refConditions = refs
+            .filter(ref => ref.ids.length > 0)
+            .map(ref => ({ [ref.field]: { $in: ref.ids } }));
+        const numericConditions = !isNaN(Number(searchTerm)) && searchTerm !== ''
+            ? localFields.map(field => ({ [field]: Number(searchTerm) }))
+            : [];
+        this.modelQuery = this.modelQuery.find({
+            $or: [...localConditions, ...refConditions, ...numericConditions],
+        });
+        return this;
+    }
     //rated base filter
     ratedFilter(field, range) {
         if (range) {

@@ -1,0 +1,211 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Property = void 0;
+const mongoose_1 = require("mongoose");
+const properties_constants_1 = require("./properties.constants");
+const LocationSchema = new mongoose_1.Schema({
+    type: {
+        type: String,
+        enum: ['Point'],
+        required: true,
+        default: 'Point',
+    },
+    coordinates: {
+        type: [Number],
+        required: true,
+        validate: {
+            validator: function (value) {
+                return value.length === 2;
+            },
+            message: 'Coordinates must contain [longitude, latitude]',
+        },
+    },
+}, {
+    _id: false,
+});
+const propertySchema = new mongoose_1.Schema({
+    seller: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+    status: {
+        type: String,
+        enum: {
+            values: properties_constants_1.STATUS_OPTIONS,
+            message: ` {VALUE} is not a valid status. Accepted values: ${properties_constants_1.STATUS_OPTIONS.join(', ')}`,
+        },
+        default: properties_constants_1.STATUS.pending,
+        required: true,
+    },
+    propertyType: {
+        type: String,
+        enum: properties_constants_1.PROPERTY_TYPES,
+        required: true,
+    },
+    useType: { type: String, default: null },
+    useTypeOther: { type: String, default: null },
+    // Ownership
+    ownership: {
+        type: String,
+        enum: properties_constants_1.OWNERSHIP_TYPES,
+        required: true,
+    },
+    assignableContractFile: {
+        type: {
+            name: { type: String, required: true },
+            size: { type: String, required: true },
+            updated: { type: String, required: true },
+            url: { type: String, required: true },
+        },
+        default: null,
+    },
+    // map location
+    location: {
+        type: LocationSchema,
+        required: true,
+    },
+    // Basic Information
+    streetAddress: { type: String, required: true },
+    state: { type: String, required: true },
+    city: { type: String, required: true },
+    zipCode: { type: String, required: true },
+    county: { type: String, required: true },
+    parcelIds: { type: String, default: null },
+    listingPrice: { type: Number, required: true },
+    oldListingPrice: { type: Number, default: null },
+    buyItNowPrice: { type: Number, default: null },
+    arv: { type: Number, default: null },
+    marketingDescription: { type: String, required: true, maxlength: 3000 },
+    utilities: { type: String, default: null },
+    specifications: {
+        type: mongoose_1.Schema.Types.Mixed,
+        default: {},
+    },
+    // Major Components & Ages
+    roofMaterial: { type: String, default: null },
+    roofMaterialOther: { type: String, default: null },
+    roofAge: { type: Number, default: null },
+    heatingSystem: { type: String, default: null },
+    heatingSystemOther: { type: String, default: null },
+    heatingAge: { type: Number, default: null },
+    cooling: { type: String, default: null },
+    coolingOther: { type: String, default: null },
+    coolingAge: { type: Number, default: null },
+    waterHeating: { type: String, default: null },
+    waterHeatingOther: { type: String, default: null },
+    waterHeatingAge: { type: Number, default: null },
+    water: { type: String, default: null },
+    waterOther: { type: String, default: null },
+    sewer: { type: String, default: null },
+    sewerOther: { type: String, default: null },
+    foundation: { type: String, default: null },
+    foundationOther: { type: String, default: null },
+    otherUpdates: { type: String, default: null },
+    // HOA
+    hasHoa: {
+        type: String,
+        enum: properties_constants_1.HOA_OPTIONS,
+        default: 'no',
+    },
+    hoaAmount: { type: Number, default: null },
+    hoaFrequency: {
+        type: String,
+        enum: properties_constants_1.HOA_FREQUENCY,
+        default: null,
+    },
+    hoaIncludes: { type: String, default: null },
+    // Closing
+    titleCompany: { type: String, default: null },
+    closingDate: { type: String, required: true },
+    // Files
+    photos: {
+        type: [String],
+        required: true,
+        validate: {
+            validator: (v) => v.length >= 5,
+            message: 'Minimum 5 high-res photos required',
+        },
+    },
+    documents: {
+        type: [
+            {
+                name: { type: String, required: true },
+                size: { type: String, required: true },
+                updated: { type: String, required: true },
+                url: { type: String, required: true },
+            },
+        ],
+        default: [],
+    },
+    totalViews: {
+        type: Number,
+        default: 0,
+    },
+    totalSaved: {
+        type: Number,
+        default: 0,
+    },
+    totalOffers: {
+        type: Number,
+        default: 0,
+    },
+    totalRsvp: {
+        type: Number,
+        default: 0
+    },
+    openHouse: {
+        type: {
+            date: { type: String, required: true },
+            startTime: { type: String, required: true },
+            endTime: { type: String, required: true },
+        },
+        required: false
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false,
+    },
+}, {
+    timestamps: true,
+});
+propertySchema.index({ location: '2dsphere' });
+propertySchema.statics.IsPropertyExistId = function (id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield exports.Property.findById(id);
+    });
+};
+propertySchema.statics.GetPropertiesBySeller = function (sellerId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield exports.Property.find({ seller: sellerId });
+    });
+};
+propertySchema.pre('find', function (next) {
+    this.where({ isDeleted: false });
+    next();
+});
+propertySchema.pre('findOne', function (next) {
+    this.where({ isDeleted: false });
+    next();
+});
+propertySchema.pre('aggregate', function (next) {
+    const pipeline = this.pipeline();
+    const firstStageIsGeoNear = pipeline.length > 0 && Object.prototype.hasOwnProperty.call(pipeline[0], '$geoNear');
+    if (firstStageIsGeoNear) {
+        pipeline.splice(1, 0, { $match: { isDeleted: false } });
+    }
+    else {
+        pipeline.unshift({ $match: { isDeleted: false } });
+    }
+    next();
+});
+exports.Property = (0, mongoose_1.model)('Property', propertySchema);

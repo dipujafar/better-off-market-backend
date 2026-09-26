@@ -98,7 +98,8 @@ const resendOtp = (email) => __awaiter(void 0, void 0, void 0, function* () {
         .readFileSync(otpEmailPath, 'utf8')
         .replace('{{otp}}', otp)
         .replace('{{fullName}}', user === null || user === void 0 ? void 0 : user.name)
-        .replace('{{email}}', user === null || user === void 0 ? void 0 : user.email));
+        .replace('{{email}}', user === null || user === void 0 ? void 0 : user.email)
+        .replace('{{year}}', new Date().getFullYear().toString()));
     return { token };
 });
 exports.otpServices = {

@@ -48,9 +48,13 @@ const userSchema = new mongoose_1.Schema({
         type: String,
         default: null,
     },
+    bio: {
+        type: String,
+        default: null,
+    },
     gender: {
         type: String,
-        enum: ['Male', 'Female', 'Others'],
+        enum: user_constants_1.gender,
         default: null,
     },
     dateOfBirth: {
@@ -60,15 +64,14 @@ const userSchema = new mongoose_1.Schema({
     phoneNumber: {
         type: String,
         required: false,
-        unique: true,
         sparse: true,
         trim: true,
-        validate: {
-            validator: function (v) {
-                return /^(\+?\d{8,15})$/.test(v);
-            },
-            message: (props) => `${props.value} is not a valid phone number!`,
-        },
+        // validate: {
+        //   validator: function (v: string) {
+        //     return /^(\+?\d{8,15})$/.test(v);
+        //   },
+        //   message: (props: any) => `${props.value} is not a valid phone number!`,
+        // },
         default: null,
     },
     location: {
@@ -79,6 +82,10 @@ const userSchema = new mongoose_1.Schema({
         type: String,
         enum: user_constants_1.Login_With,
         default: user_constants_1.Login_With.credentials,
+    },
+    company: {
+        type: String,
+        default: null,
     },
     status: {
         type: String,
@@ -193,6 +200,11 @@ userSchema.statics.isPasswordMatched = function (plainTextPassword, hashedPasswo
 userSchema.statics.GetAdminUser = function () {
     return __awaiter(this, void 0, void 0, function* () {
         return yield exports.User.findOne({ role: user_constants_1.USER_ROLE.admin });
+    });
+};
+userSchema.statics.GetUserById = function (id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield exports.User.findById(id).select('-password');
     });
 };
 userSchema.post('save', function (doc, next) {
