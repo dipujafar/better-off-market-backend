@@ -202,7 +202,10 @@ const acceptOffer = (offerId, userId) => __awaiter(void 0, void 0, void 0, funct
         const offerAcceptedBy = ((_b = (_a = offer === null || offer === void 0 ? void 0 : offer.buyer) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) === userId ? 'buyer' : 'seller';
         // PDF generation happens outside the DB transaction (it's not a DB write),
         // but if it throws, the catch block below still aborts before any writes commit
-        const pdf = yield (0, offer_utils_1.generateOfferPdf)(offer);
+        const [agreementMainDoc, propertyAgreementDoc] = yield Promise.all([
+            (0, offer_utils_1.generateOfferPdf)(offer),
+            (0, offer_utils_1.generatePropertyPdf)(offer),
+        ]);
         const result = yield offer_models_1.Offer.findByIdAndUpdate(offerId, { status: offer_constants_1.OFFER_STATUS.accepted, offerAcceptedBy }, { new: true, session });
         yield agreement_model_1.Agreement.create([
             {
@@ -210,7 +213,8 @@ const acceptOffer = (offerId, userId) => __awaiter(void 0, void 0, void 0, funct
                 property: offer.property._id,
                 buyer: offer.buyer._id,
                 seller: offer.seller._id,
-                agreementMainDoc: pdf,
+                agreementMainDoc,
+                propertyAgreementDoc,
             },
         ], { session });
         // // const admin = await User.GetAdminUser();

@@ -21,15 +21,6 @@ const createPropertyValidationSchema = zod_1.z
         ownership: zod_1.z.enum(['own', 'assignable'], {
             message: 'Select an ownership type',
         }),
-        assignableContractFile: zod_1.z
-            .object({
-            name: zod_1.z.string(),
-            size: zod_1.z.string(),
-            updated: zod_1.z.string(),
-            url: zod_1.z.string(),
-        })
-            .optional()
-            .nullable(),
         // Location
         location: locationSchema,
         // Basic Information
@@ -123,13 +114,6 @@ const createPropertyValidationSchema = zod_1.z
             message: 'Buy it now price is required',
         });
     }
-    if (body.ownership === 'assignable' && !body.assignableContractFile) {
-        ctx.addIssue({
-            code: zod_1.z.ZodIssueCode.custom,
-            path: ['body', 'assignableContractFile'],
-            message: 'Assignable contract PDF is required for verification',
-        });
-    }
     if (body.hasHoa === 'yes' && !body.hoaAmount) {
         ctx.addIssue({
             code: zod_1.z.ZodIssueCode.custom,
@@ -147,15 +131,6 @@ const updatePropertyValidationSchema = zod_1.z.object({
         useTypeOther: zod_1.z.string().optional(),
         ownership: zod_1.z.enum(['own', 'assignable']).optional(),
         location: locationSchema.optional(),
-        assignableContractFile: zod_1.z
-            .object({
-            name: zod_1.z.string(),
-            size: zod_1.z.string(),
-            updated: zod_1.z.string(),
-            url: zod_1.z.string(),
-        })
-            .optional()
-            .nullable(),
         streetAddress: zod_1.z.string().optional(),
         state: zod_1.z.string().optional(),
         city: zod_1.z.string().optional(),

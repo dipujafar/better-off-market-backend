@@ -15,7 +15,7 @@ import { Property } from "../properties/properties.models";
 import { STATUS } from "../properties/properties.constants";
 import { uploadToS3 } from "../../utils/s3";
 import { AGREEMENT_STATUS } from "./agreement.constants";
-import { updateSignedAgreementPdf, updateSignerNamesOnPdf } from "./agreement.utils";
+import { updatePropertyAgreementParties, updateSignedAgreementPdf, updateSignerNamesOnPdf } from "./agreement.utils";
 
 
 const findSignerIndexByEmail = (signers: IAuthorizeSigner[] = [], email: string) => {
@@ -25,13 +25,32 @@ const findSignerIndexByEmail = (signers: IAuthorizeSigner[] = [], email: string)
 
 
 export const addSellerAuthorizedSigner = async (offerId: string, payload: IAuthorizeSigner[]) => {
-    const offer = await Offer.findByIdAndUpdate(offerId, { $set: { isSellerAddedAuthorizedSigner: true } }, { new: true }).populate('property').populate('buyer').populate('seller');
+    const offer = await Offer.findByIdAndUpdate(
+        offerId,
+        { $set: { isSellerAddedAuthorizedSigner: true } },
+        { new: true },
+    ).populate('property').populate('buyer').populate('seller');
 
-    const result = await Agreement.findOneAndUpdate(
+    let agreement = await Agreement.findOneAndUpdate(
         { offer: offerId },
         { $push: { sellerAuthorizeSigner: payload } },
-        { new: true }
+        { new: true },
     );
+
+    if (agreement) {
+        const propertyDocUrl = await updatePropertyAgreementParties(
+            agreement.propertyAgreementDoc,
+            'seller',
+            agreement.sellerAuthorizeSigner,
+            agreement._id.toString(),
+        );
+
+        agreement = await Agreement.findOneAndUpdate(
+            { offer: offerId },
+            { propertyAgreementDoc: propertyDocUrl },
+            { new: true },
+        );
+    }
 
     const contactEmailPath = path.join(
         __dirname,
@@ -57,7 +76,7 @@ export const addSellerAuthorizedSigner = async (offerId: string, payload: IAutho
     })
 
 
-    return result;
+    return agreement;
 }
 
 export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthorizeSigner[]) => {
@@ -65,10 +84,7 @@ export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthor
         offerId,
         { $set: { isBuyerAddedAuthorizedSigner: true } },
         { new: true },
-    )
-        .populate('property')
-        .populate('buyer')
-        .populate('seller');
+    ).populate('property').populate('buyer').populate('seller');
 
     let agreement = await Agreement.findOneAndUpdate(
         { offer: offerId },
@@ -76,18 +92,25 @@ export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthor
         { new: true },
     );
 
-    // Stamp the buyer name(s) into the correct slot(s) on the PDF now that the
-    // full signer list for this agreement is known.
     if (agreement) {
-        const updatedPdfUrl = await updateSignerNamesOnPdf(
-            agreement.agreementMainDoc,
-            agreement.buyerAuthorizeSigner,
-            agreement._id.toString(),
-        );
+        // two independent PDFs, so stamp them in parallel
+        const [mainDocUrl, propertyDocUrl] = await Promise.all([
+            updateSignerNamesOnPdf(
+                agreement.agreementMainDoc,
+                agreement.buyerAuthorizeSigner,
+                agreement._id.toString(),
+            ),
+            updatePropertyAgreementParties(
+                agreement.propertyAgreementDoc,
+                'buyer',
+                agreement.buyerAuthorizeSigner,
+                agreement._id.toString(),
+            ),
+        ]);
 
         agreement = await Agreement.findOneAndUpdate(
             { offer: offerId },
-            { agreementMainDoc: updatedPdfUrl },
+            { agreementMainDoc: mainDocUrl, propertyAgreementDoc: propertyDocUrl },
             { new: true },
         );
     }

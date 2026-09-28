@@ -32,7 +32,7 @@ const formatFileSize = (bytes) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 const processPropertyFiles = (0, catchAsync_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b;
     const files = req.files;
     if ((_a = files === null || files === void 0 ? void 0 : files.photos) === null || _a === void 0 ? void 0 : _a.length) {
         req.body.photos = yield Promise.all(files.photos.map((file) => (0, s3_1.uploadToS3)({
@@ -53,19 +53,6 @@ const processPropertyFiles = (0, catchAsync_1.default)((req, res, next) => __awa
                 url,
             };
         })));
-    }
-    if ((_c = files === null || files === void 0 ? void 0 : files.assignableContractFile) === null || _c === void 0 ? void 0 : _c[0]) {
-        const file = files.assignableContractFile[0];
-        const url = yield (0, s3_1.uploadToS3)({
-            file,
-            fileName: `documents/property/contract/${Date.now()}-${sanitizeFileName(file.originalname)}`,
-        });
-        req.body.assignableContractFile = {
-            name: file.originalname,
-            size: formatFileSize(file.size),
-            updated: new Date().toISOString(),
-            url,
-        };
     }
     next();
 }));

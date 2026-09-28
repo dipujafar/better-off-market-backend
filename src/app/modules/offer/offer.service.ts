@@ -6,7 +6,7 @@ import { OFFER_STATUS, CLOSED_OFFER_STATUSES } from './offer.constants';
 import { Offer } from './offer.models';
 import { Property } from '../properties/properties.models';
 import { STATUS } from '../properties/properties.constants';
-import { generateOfferPdf } from './offer.utils';
+import { generateOfferPdf, generatePropertyPdf } from './offer.utils';
 import { Agreement } from '../agreement/agreement.model';
 import mongoose from 'mongoose';
 import { sendNotificationMessage } from '../notification/notification.utils';
@@ -324,7 +324,11 @@ const acceptOffer = async (offerId: string, userId: string) => {
 
     // PDF generation happens outside the DB transaction (it's not a DB write),
     // but if it throws, the catch block below still aborts before any writes commit
-    const pdf = await generateOfferPdf(offer);
+    const [agreementMainDoc, propertyAgreementDoc] = await Promise.all([
+      generateOfferPdf(offer),
+      generatePropertyPdf(offer),
+    ]);
+
 
     const result = await Offer.findByIdAndUpdate(
       offerId,
@@ -339,7 +343,8 @@ const acceptOffer = async (offerId: string, userId: string) => {
           property: offer.property._id,
           buyer: offer.buyer._id,
           seller: offer.seller._id,
-          agreementMainDoc: pdf,
+          agreementMainDoc,
+          propertyAgreementDoc,
         },
       ],
       { session },

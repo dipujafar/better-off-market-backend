@@ -60,7 +60,7 @@ export interface IOffer {
     seller: Types.ObjectId;
 
     // offer accept part 
-    offerAcceptedBy: string;
+    offerAcceptedBy?: string;
     isBuyerAddedAuthorizedSigner: boolean;
     isSellerAddedAuthorizedSigner: boolean;
 

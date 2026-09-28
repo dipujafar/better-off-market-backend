@@ -18,6 +18,7 @@ export interface IAgreement {
     seller: ObjectId;
     status: keyof typeof AGREEMENT_STATUS;
     agreementMainDoc: string;
+    propertyAgreementDoc: string;
     buyerAuthorizeSigner: IAuthorizeSigner[];
     sellerAuthorizeSigner: IAuthorizeSigner[];
     isDeleted: boolean;

@@ -60,15 +60,6 @@ const propertySchema = new mongoose_1.Schema({
         enum: properties_constants_1.OWNERSHIP_TYPES,
         required: true,
     },
-    assignableContractFile: {
-        type: {
-            name: { type: String, required: true },
-            size: { type: String, required: true },
-            updated: { type: String, required: true },
-            url: { type: String, required: true },
-        },
-        default: null,
-    },
     // map location
     location: {
         type: LocationSchema,
@@ -80,6 +71,7 @@ const propertySchema = new mongoose_1.Schema({
     city: { type: String, required: true },
     zipCode: { type: String, required: true },
     county: { type: String, required: true },
+    countyType: { type: String, required: true },
     parcelIds: { type: String, default: null },
     listingPrice: { type: Number, required: true },
     oldListingPrice: { type: Number, default: null },

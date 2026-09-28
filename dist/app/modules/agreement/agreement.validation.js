@@ -9,9 +9,6 @@ const addAuthorizedSignerValidation = zod_1.z.object({
     }).array()
 });
 const signAgreementValidation = zod_1.z.object({
-    params: zod_1.z.object({
-        id: zod_1.z.string({ required_error: 'offer id is required' }),
-    }),
     body: zod_1.z.object({
         email: zod_1.z.string({ required_error: 'email is required' }).email('invalid email format'),
         signatureImage: zod_1.z.string().optional(),

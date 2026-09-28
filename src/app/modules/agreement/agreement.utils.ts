@@ -11,14 +11,14 @@ const PAGE_2_SIGNER_LAYOUT: Record<
     }
 > = {
     1: {
-        name: { x: 109, y: 484 },
-        signature: { x: 90, y: 437, width: 232, height: 25 },
+        name: { x: 95, y: 501 },
+        signature: { x: 75, y: 436, width: 232, height: 25 },
         date: { x: 90, y: 418 },
     },
     2: {
-        name: { x: 109, y: 346 },
-        signature: { x: 90, y: 285, width: 332, height: 25 },
-        date: { x: 90, y: 271 },
+        name: { x: 95, y: 366 },
+        signature: { x: 75, y: 302, width: 232, height: 25 },
+        date: { x: 90, y: 286 },
     },
 };
 
@@ -243,11 +243,13 @@ export const updateSignerNamesOnPdf = async (
         return agreementMainDoc ?? null;
     }
 
+    console.log("hit here");
+
     try {
         const response = await axios.get(agreementMainDoc, { responseType: 'arraybuffer' });
         const pdfBytes = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data);
         const pdfDoc = await PDFDocument.load(pdfBytes);
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        // const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const page = pdfDoc.getPage(1); // page index 1 = second page, where name slots live
 
         // Only slots 1 and 2 exist on this template — max 2 signers, matching the schema.
@@ -263,9 +265,9 @@ export const updateSignerNamesOnPdf = async (
             page.drawText(String(signer.name ?? ''), {
                 x: layout.name.x,
                 y: layout.name.y - 4,
-                size: 11,
-                font,
-                color: rgb(0, 0, 0),
+                size: 13,
+                // font,
+                color: rgb(0.35, 0.35, 0.35),
             });
         });
 
@@ -280,5 +282,151 @@ export const updateSignerNamesOnPdf = async (
     } catch (error) {
         console.warn('Failed to stamp buyer names onto agreement PDF, keeping original PDF:', error);
         return agreementMainDoc;
+    }
+};
+
+
+
+
+// =======================================================================
+
+type PartyRole = 'buyer' | 'seller';
+
+interface IPartySigner {
+    name?: string | null;
+    email?: string | null;
+}
+
+// Layout for the 10-page purchase agreement (propertyAgreementDoc).
+// Measured from the page screenshots and converted to PDF points
+// (Letter 612x792, origin bottom-left). pageIndex is 0-based:
+// page 1 -> 0, page 9 -> 8, page 10 -> 9. `y` is the text baseline.
+const PROPERTY_AGREEMENT_LAYOUT = {
+    // Page 1: "Seller: ____" and "Buyer: ____" lines
+    partiesPage: {
+        pageIndex: 0,
+        maxWidth: 480,
+        seller: { x: 76, y: 618 },
+        buyer: { x: 76, y: 590 },
+    },
+    // Page 9: "Seller Email: ____" and "Buyer Email: ____" lines
+    emailsPage: {
+        pageIndex: 8,
+        maxWidth: 440,
+        seller: { x: 108, y: 442 },
+        buyer: { x: 108, y: 414 },
+    },
+    // Page 10: two Name slots per side (signature and date are handled elsewhere)
+    signaturePage: {
+        pageIndex: 9,
+        maxWidth: 265,
+        buyer: {
+            1: { x: 80, y: 583 },
+            2: { x: 80, y: 472 },
+        },
+        seller: {
+            1: { x: 80, y: 321 },
+            2: { x: 80, y: 210 },
+        },
+    },
+} as const;
+
+const PARTY_TEXT_COLOR = rgb(0.35, 0.35, 0.35);
+
+const joinSignerField = (signers: IPartySigner[], key: 'name' | 'email') =>
+    signers
+        .map((signer) => String(signer?.[key] ?? '').trim())
+        .filter(Boolean)
+        .join(', ');
+
+// Stamps buyer OR seller details onto the property agreement:
+//   page 1  -> names (comma-separated if multiple)
+//   page 9  -> emails (comma-separated if multiple)
+//   page 10 -> name only, signer 1 in slot 1, signer 2 in slot 2
+export const updatePropertyAgreementParties = async (
+    propertyAgreementDoc: string,
+    role: PartyRole,
+    signers: IPartySigner[],
+    agreementId: string,
+) => {
+    if (!propertyAgreementDoc || !signers?.length) {
+        return propertyAgreementDoc ?? null;
+    }
+
+    try {
+        const response = await axios.get(propertyAgreementDoc, { responseType: 'arraybuffer' });
+        const pdfBytes = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data);
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const pages = pdfDoc.getPages();
+
+        // Draws text at the given position, shrinking the font if it would
+        // run past maxWidth (long names / two comma-separated values).
+        const drawFitted = (
+            pageIndex: number,
+            text: string,
+            pos: { x: number; y: number },
+            maxWidth: number,
+        ) => {
+            const page = pages[pageIndex];
+            if (!page) {
+                console.warn(`Property agreement has no page at index ${pageIndex}, skipping`);
+                return;
+            }
+            if (!text) return;
+
+            let size = 11;
+            while (size > 7 && font.widthOfTextAtSize(text, size) > maxWidth) {
+                size -= 0.5;
+            }
+
+            page.drawText(text, {
+                x: pos.x,
+                y: pos.y,
+                size,
+                font,
+                color: PARTY_TEXT_COLOR,
+            });
+        };
+
+        const { partiesPage, emailsPage, signaturePage } = PROPERTY_AGREEMENT_LAYOUT;
+
+        // Page 1: names
+        drawFitted(
+            partiesPage.pageIndex,
+            joinSignerField(signers, 'name'),
+            partiesPage[role],
+            partiesPage.maxWidth,
+        );
+
+        // Page 9: emails
+        drawFitted(
+            emailsPage.pageIndex,
+            joinSignerField(signers, 'email'),
+            emailsPage[role],
+            emailsPage.maxWidth,
+        );
+
+        // Page 10: one name per slot, max 2 signers per side
+        signers.slice(0, 2).forEach((signer, index) => {
+            const slot = (index + 1) as 1 | 2;
+            drawFitted(
+                signaturePage.pageIndex,
+                String(signer?.name ?? '').trim(),
+                signaturePage[role][slot],
+                signaturePage.maxWidth,
+            );
+        });
+
+        const updatedPdf = await pdfDoc.save();
+        const updatedUrl = await uploadToS3({
+            file: { buffer: updatedPdf, mimetype: 'application/pdf' },
+            fileName: `agreements/property_agreement_${agreementId ?? 'agreement'}_${Date.now()}.pdf`,
+        });
+
+        return updatedUrl ?? propertyAgreementDoc;
+    } catch (error) {
+        console.warn('Failed to stamp parties onto property agreement PDF, keeping original PDF:', error);
+        return propertyAgreementDoc;
     }
 };

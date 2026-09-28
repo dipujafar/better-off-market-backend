@@ -41,7 +41,6 @@ const upload = (0, multer_1.default)({ storage: (0, multer_1.memoryStorage)() })
 const propertyUploadFields = upload.fields([
     { name: 'photos', maxCount: 50 },
     { name: 'documents', maxCount: 10 },
-    { name: 'assignableContractFile', maxCount: 1 },
 ]);
 router.post('/', (0, auth_1.default)(user_constants_1.USER_ROLE.user), propertyUploadFields, (0, parseData_1.default)(), properties_upload_middleware_1.default, (0, validateRequest_1.default)(properties_validation_1.propertyValidation.createPropertyValidationSchema), properties_controller_1.propertyController.createProperty);
 router.get('/', properties_controller_1.propertyController.getAllProperties);

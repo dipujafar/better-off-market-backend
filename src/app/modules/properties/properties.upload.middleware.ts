@@ -26,7 +26,6 @@ const processPropertyFiles = catchAsync(
         const files = req.files as {
             photos?: Express.Multer.File[];
             documents?: Express.Multer.File[];
-            assignableContractFile?: Express.Multer.File[];
         };
 
         if (files?.photos?.length) {
@@ -56,21 +55,6 @@ const processPropertyFiles = catchAsync(
                     };
                 }),
             );
-        }
-
-        if (files?.assignableContractFile?.[0]) {
-            const file = files.assignableContractFile[0];
-            const url = await uploadToS3({
-                file,
-                fileName: `documents/property/contract/${Date.now()}-${sanitizeFileName(file.originalname)}`,
-            });
-
-            req.body.assignableContractFile = {
-                name: file.originalname,
-                size: formatFileSize(file.size),
-                updated: new Date().toISOString(),
-                url,
-            };
         }
 
         next();

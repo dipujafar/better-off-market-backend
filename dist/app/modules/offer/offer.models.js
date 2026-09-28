@@ -46,7 +46,7 @@ const offerSchema = new mongoose_1.Schema({
     buyer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     seller: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     // offer accept part 
-    offerAcceptedBy: { type: String, enum: offer_constants_1.MADE_BY, required: true },
+    offerAcceptedBy: { type: String, enum: offer_constants_1.MADE_BY, default: null },
     isBuyerAddedAuthorizedSigner: { type: Boolean, default: false },
     isSellerAddedAuthorizedSigner: { type: Boolean, default: false },
     status: {

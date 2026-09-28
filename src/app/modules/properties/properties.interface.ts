@@ -35,7 +35,6 @@ export interface IProperty {
 
     // Ownership
     ownership: 'own' | 'assignable';
-    assignableContractFile?: IDocument;
 
     // Location
     location: ILocation;
@@ -46,6 +45,7 @@ export interface IProperty {
     city: string;
     zipCode: string;
     county: string;
+    countyType: string;
     parcelIds?: string;
     listingPrice: number;
     oldListingPrice?: number;

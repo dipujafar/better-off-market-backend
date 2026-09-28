@@ -32,15 +32,7 @@ const createPropertyValidationSchema = z
             ownership: z.enum(['own', 'assignable'], {
                 message: 'Select an ownership type',
             }),
-            assignableContractFile: z
-                .object({
-                    name: z.string(),
-                    size: z.string(),
-                    updated: z.string(),
-                    url: z.string(),
-                })
-                .optional()
-                .nullable(),
+
 
             // Location
             location: locationSchema,
@@ -147,13 +139,6 @@ const createPropertyValidationSchema = z
                 message: 'Buy it now price is required',
             });
         }
-        if (body.ownership === 'assignable' && !body.assignableContractFile) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['body', 'assignableContractFile'],
-                message: 'Assignable contract PDF is required for verification',
-            });
-        }
         if (body.hasHoa === 'yes' && !body.hoaAmount) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -172,15 +157,6 @@ const updatePropertyValidationSchema = z.object({
         useTypeOther: z.string().optional(),
         ownership: z.enum(['own', 'assignable']).optional(),
         location: locationSchema.optional(),
-        assignableContractFile: z
-            .object({
-                name: z.string(),
-                size: z.string(),
-                updated: z.string(),
-                url: z.string(),
-            })
-            .optional()
-            .nullable(),
         streetAddress: z.string().optional(),
         state: z.string().optional(),
         city: z.string().optional(),

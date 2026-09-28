@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { IOffer } from './offer.interface';
 import { uploadToS3 } from '../../utils/s3';
 import AppError from '../../error/AppError';
 import httpStatus from 'http-status';
+
 
 const formatCurrency = (value: number | string | null | undefined): string => {
     const numericValue = Number(value ?? 0);
@@ -18,6 +19,39 @@ const formatCurrency = (value: number | string | null | undefined): string => {
     })}`;
 };
 
+const formatPdfDate = (value: unknown): string => {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return '';
+        }
+
+        const parsed = new Date(trimmed);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            });
+        }
+
+        return trimmed;
+    }
+
+    if (value instanceof Date) {
+        return value.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    }
+
+    return String(value);
+};
 
 const getPropertyAddress = (property: unknown): string => {
     if (!property || typeof property !== 'object') {
@@ -37,6 +71,53 @@ const getPropertyAddress = (property: unknown): string => {
         .join(', ');
 };
 
+const setFieldText = (form: any, fieldName: string, value: string | number | null | undefined) => {
+    try {
+        const field = form.getTextField(fieldName);
+        field.setText(value == null || value === '' ? '' : String(value));
+    } catch {
+        // ignore missing field names in the template
+    }
+};
+
+const setCheckedField = (form: any, fieldName: string, checked: boolean, symbolFont?: any) => {
+    if (!checked) {
+        setFieldText(form, fieldName, '');
+        return;
+    }
+
+    try {
+        const field = form.getTextField(fieldName);
+        // Use the PDF-safe ZapfDingbats check mark glyph instead of Unicode ✓,
+        // because the template fonts are WinAnsi-based and reject non-encoded characters.
+        field.setText('\u2713');
+        field.setFontSize(12);
+        if (symbolFont) {
+            field.updateAppearances(symbolFont);
+        }
+    } catch {
+        // ignored if the template field is absent
+    }
+};
+
+const uploadGeneratedPdf = async (pdfBuffer: Uint8Array, fileName: string, pdfType: 'offer' | 'property') => {
+    try {
+        const uploadedUrl = await uploadToS3({
+            file: { buffer: pdfBuffer, mimetype: 'application/pdf' },
+            fileName,
+        });
+
+        if (uploadedUrl) {
+            return uploadedUrl;
+        }
+    } catch (error) {
+        console.warn(`S3 upload failed for generated ${pdfType} PDF:`, error);
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, `Failed to generate ${pdfType} PDF`);
+    }
+
+    return null;
+};
+
 export const generateOfferPdf = async (offer: IOffer): Promise<string | undefined | null> => {
     try {
         const pdfPath = path.join(process.cwd(), 'offer_agreement.pdf');
@@ -50,65 +131,117 @@ export const generateOfferPdf = async (offer: IOffer): Promise<string | undefine
         const pdfDoc = await PDFDocument.load(pdfBytes);
         const form = pdfDoc.getForm();
 
-        const buyer = (offer as any)?.buyer ?? {};
-        const seller = (offer as any)?.seller ?? {};
         const property = (offer as any)?.property ?? {};
         const terms = (offer as any)?.currentTerms ?? {};
-
-        const setFieldText = (fieldName: string, value: string) => {
-            try {
-                const field = form.getTextField(fieldName);
-                field.setText(value || '');
-            } catch {
-                // ignore missing field names in the template
-            }
-        };
-
 
         const propertyAddress = getPropertyAddress(property);
         const offerAmount = Number(terms?.offerAmount ?? property?.listingPrice ?? 0);
         const commissionAmount = offerAmount * 0.02;
 
-
-        setFieldText('property_address', propertyAddress);
-        setFieldText('property_amount', formatCurrency(offerAmount));
-        setFieldText('property_amount_with_commission', formatCurrency(commissionAmount));
-        setFieldText('buyer_1_name', '');
-        setFieldText('buyer_1_signature', '');
-        setFieldText('buyer_1_signature_date', '');
-        setFieldText('buyer_2_name', '');
-        setFieldText('buyer_2_signature', '');
-        setFieldText('buyer_2_signature_date', '');
+        setFieldText(form, 'property_address', propertyAddress);
+        setFieldText(form, 'property_amount', formatCurrency(offerAmount));
+        setFieldText(form, 'property_amount_with_commission', formatCurrency(commissionAmount));
+        setFieldText(form, 'buyer_1_name', '');
+        setFieldText(form, 'buyer_1_signature', '');
+        setFieldText(form, 'buyer_1_signature_date', '');
+        setFieldText(form, 'buyer_2_name', '');
+        setFieldText(form, 'buyer_2_signature', '');
+        setFieldText(form, 'buyer_2_signature_date', '');
 
         form.flatten();
         const generatedPdf = await pdfDoc.save();
-
         const fileName = `offers/offer_agreement_${Date.now()}.pdf`;
 
-        try {
-            const uploadedUrl = await uploadToS3({
-                file: { buffer: generatedPdf, mimetype: 'application/pdf' },
-                fileName,
-            });
-
-            if (uploadedUrl) {
-                return uploadedUrl;
-            }
-        } catch (error) {
-            console.warn('S3 upload failed for generated offer PDF, falling back to local file:', error);
-            throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate offer PDF');
-        }
-
-        // const outputDir = path.join(process.cwd(), 'generated-offers');
-        // fs.mkdirSync(outputDir, { recursive: true });
-
-        // const localFilePath = path.join(outputDir, fileName.replace(/\//g, '_'));
-        // fs.writeFileSync(localFilePath, generatedPdf);
-
-        // return localFilePath;
-
+        return uploadGeneratedPdf(generatedPdf, fileName, 'offer');
     } catch (error) {
         console.error('Error generating offer PDF:', error);
         return null;
     }
 };
+
+export const generatePropertyPdf = async (offer: IOffer): Promise<string | undefined | null> => {
+    try {
+        const property = (offer as any)?.property ?? {};
+
+        const pdfPath = path.join(process.cwd(), property?.countyType === 'OHIO' ? 'ohio_property_agreement.pdf' : 'kentuncky_property_agreement.pdf');
+
+        if (!fs.existsSync(pdfPath)) {
+            console.error('Property PDF template not found at:', pdfPath);
+            return null;
+        }
+
+        const pdfBytes = fs.readFileSync(pdfPath);
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const form = pdfDoc.getForm();
+
+
+        const terms = (offer as any)?.currentTerms ?? {};
+        const offerAmount = Number(terms?.offerAmount ?? 0);
+        const earnestMoney = Number(terms?.earnestMoney ?? 0);
+        const balanceDue = Math.max(offerAmount - earnestMoney, 0);
+        const symbolFont = await pdfDoc.embedFont(StandardFonts.ZapfDingbats);
+
+        setFieldText(form, 'property_address', getPropertyAddress(property));
+        setFieldText(form, 'parcel_id', property?.parcelIds ?? '');
+        setFieldText(form, 'purchase_price', formatCurrency(offerAmount));
+        setFieldText(form, 'earnest_money', formatCurrency(earnestMoney));
+        setFieldText(form, 'balance_due', formatCurrency(balanceDue));
+        setFieldText(form, 'company_title', terms?.titleCompany ?? property?.titleCompany ?? '');
+
+        setCheckedField(form, 'financing_check_cash', terms?.financingType === 'cash', symbolFont);
+        setCheckedField(form, 'financing_check_conventional', terms?.financingType === 'conventional', symbolFont);
+        setCheckedField(form, 'financing_check_hard', terms?.financingType === 'hard_money', symbolFont);
+        setCheckedField(form, 'financing_check_other', terms?.financingType === 'other', symbolFont);
+        setFieldText(form, 'financing_check_other_text', terms?.financingType === 'other' ? terms?.otherFinancingType ?? '' : '');
+        setFieldText(form, 'financingTerms', terms?.financingTerms ?? '');
+
+        setFieldText(form, 'seller_paid', Number(terms?.sellerContribution ?? 0));
+
+        setCheckedField(form, 'inspection_waived', terms?.inspectionContingency === 'no', symbolFont);
+        setCheckedField(form, 'inspection_applies', terms?.inspectionContingency === 'yes', symbolFont);
+        setFieldText(form, 'inspection_days', terms?.inspectionContingency === 'yes' ? terms?.inspectionDays ?? '' : '');
+
+        setCheckedField(form, 'appraisal_waived', terms?.appraisalContingency === 'no', symbolFont);
+        setCheckedField(form, 'appraisal_applies', terms?.appraisalContingency === 'yes', symbolFont);
+
+        setCheckedField(form, 'not_real_estate', terms?.hasAgent === 'no', symbolFont);
+        setCheckedField(form, 'real_estate', terms?.hasAgent === 'yes', symbolFont);
+        setFieldText(form, 'agent_name', terms?.hasAgent === 'yes' ? terms?.agentName ?? '' : '');
+        setFieldText(form, 'brokerage_name', terms?.hasAgent === 'yes' ? terms?.brokerageName ?? '' : '');
+        setFieldText(form, 'commission', terms?.hasAgent === 'yes' ? terms?.commission ?? '' : '');
+
+        setCheckedField(form, 'commission_paid_buyer', terms?.paidBy === 'buyer', symbolFont);
+        setCheckedField(form, 'commission_paid_seller', terms?.paidBy === 'seller', symbolFont);
+
+        setFieldText(form, 'personal_property_included', terms?.personalPropertyIncluded ?? '');
+        setFieldText(form, 'personal_property_excluded', terms?.itemsToBeRemoved ?? '');
+        setFieldText(form, 'additional_terms', terms?.additionalTerms ?? '');
+        setFieldText(form, 'closing_date', formatPdfDate(terms?.closingDate ?? property?.closingDate ?? ''));
+
+        setCheckedField(form, 'at__closing', terms?.possession === 'at_closing', symbolFont);
+        setCheckedField(form, 'post__closing', terms?.possession === 'post_closing', symbolFont);
+        setFieldText(form, 'post__closing_days', terms?.possession === 'post_closing' ? terms?.sellerPostClosingDays ?? '' : '');
+
+        setCheckedField(form, 'not_HOA', property?.hasHoa === 'no', symbolFont);
+        setCheckedField(form, 'HOA', property?.hasHoa === 'yes', symbolFont);
+        setFieldText(form, 'HOA_AMOUNT', property?.hasHoa === 'yes' ? property?.hoaAmount ?? '' : '');
+        setFieldText(form, 'HOA_PAID', property?.hasHoa === 'yes' ? property?.hoaFrequency ?? '' : '');
+        setFieldText(form, 'included_in_HOA', property?.hasHoa === 'yes' ? property?.hoaIncludes ?? '' : '');
+
+        form.flatten();
+        const generatedPdf = await pdfDoc.save();
+        const fileName = `properties/${property?.countyType === 'OHIO' ? 'ohio' : "kentuncky"}_property_agreement_${Date.now()}.pdf`;
+
+        return uploadGeneratedPdf(generatedPdf, fileName, 'property');
+    } catch (error) {
+        console.error('Error generating property PDF:', error);
+        return null;
+    }
+};
+
+
+
+
+
+
+
