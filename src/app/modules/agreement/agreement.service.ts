@@ -1,19 +1,15 @@
 import { Offer } from "../offer/offer.models";
 import { IAuthorizeSigner } from "./agreement.interface";
 import { Agreement } from "./agreement.model";
-
 import path from "path";
 import fs from "fs";
-import axios from "axios";
 import httpStatus from "http-status";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { sendEmail } from "../../utils/mailSender";
 import config from "../../config";
 import { propertyAddress } from "../properties/properties.utils";
 import AppError from "../../error/AppError";
 import { Property } from "../properties/properties.models";
 import { STATUS } from "../properties/properties.constants";
-import { uploadToS3 } from "../../utils/s3";
 import { AGREEMENT_STATUS } from "./agreement.constants";
 import { updatePropertyAgreementParties, updateSignedAgreementPdf, updateSignerNamesOnPdf } from "./agreement.utils";
 
@@ -37,12 +33,15 @@ export const addSellerAuthorizedSigner = async (offerId: string, payload: IAutho
         { new: true },
     );
 
+    const property: any = offer?.property;
+
     if (agreement) {
         const propertyDocUrl = await updatePropertyAgreementParties(
             agreement.propertyAgreementDoc,
             'seller',
             agreement.sellerAuthorizeSigner,
             agreement._id.toString(),
+            property?.countyType ?? '',
         );
 
         agreement = await Agreement.findOneAndUpdate(
@@ -58,7 +57,7 @@ export const addSellerAuthorizedSigner = async (offerId: string, payload: IAutho
     );
 
     const seller: any = offer?.seller;
-    const property: any = offer?.property;
+
 
     payload.forEach(async (signer) => {
         await sendEmail(
@@ -86,6 +85,8 @@ export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthor
         { new: true },
     ).populate('property').populate('buyer').populate('seller');
 
+    const property: any = offer?.property;
+
     let agreement = await Agreement.findOneAndUpdate(
         { offer: offerId },
         { $push: { buyerAuthorizeSigner: payload } },
@@ -105,6 +106,7 @@ export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthor
                 'buyer',
                 agreement.buyerAuthorizeSigner,
                 agreement._id.toString(),
+                property?.countyType ?? '',
             ),
         ]);
 
@@ -118,7 +120,7 @@ export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthor
     const contactEmailPath = path.join(__dirname, '../../../../public/view/agreement.html');
 
     const buyer: any = offer?.buyer;
-    const property: any = offer?.property;
+
 
     payload.forEach(async (signer) => {
         await sendEmail(
@@ -141,9 +143,10 @@ export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthor
     return agreement;
 };
 
+
 export const signAgreement = async (
     offerId: string,
-    payload: { email: string; signatureImage?: string },
+    payload: { email: string; signatureImage?: string, role: string },
 ) => {
     const agreement = await Agreement.findOne({ offer: offerId });
 
@@ -181,11 +184,11 @@ export const signAgreement = async (
 
     const areAllBuyerSignersSigned = agreement.buyerAuthorizeSigner.length
         ? agreement.buyerAuthorizeSigner.every((signer) => signer.isSigned)
-        : true;
+        : false;
 
     const areAllSellerSignersSigned = sellerAuthorizeSigner.length
         ? sellerAuthorizeSigner.every((signer) => signer.isSigned)
-        : true;
+        : false;
 
     const shouldCompleteAgreement = areAllBuyerSignersSigned && areAllSellerSignersSigned;
 
@@ -207,6 +210,7 @@ export const signAgreement = async (
 
     return agreement;
 };
+
 export const getAgreements = async (offerId: string) => {
     const result = await Agreement.findOne({ offer: offerId });
     return result;

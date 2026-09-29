@@ -22,6 +22,70 @@ const PAGE_2_SIGNER_LAYOUT: Record<
     },
 };
 
+
+const PROPERTY_AGREEMENT_LAYOUT = (countyType: string) => {
+    return countyType === 'OHIO' ?
+        {
+            partiesPage: {
+                pageIndex: 0,
+                maxWidth: 480,
+                seller: { x: 76, y: 618 },
+                buyer: { x: 76, y: 590 },
+            },
+
+            emailsPage: {
+                pageIndex: 8,
+                maxWidth: 440,
+                seller: { x: 108, y: 442 },
+                buyer: { x: 108, y: 414 },
+            },
+
+            signaturePage: {
+                pageIndex: 9,
+                maxWidth: 265,
+                buyer: {
+                    1: { x: 80, y: 703 },
+                    2: { x: 80, y: 591 },
+                },
+                seller: {
+                    1: { x: 80, y: 439 },
+                    2: { x: 80, y: 327 },
+                },
+            },
+        }
+
+        : {
+            partiesPage: {
+                pageIndex: 0,
+                maxWidth: 480,
+                seller: { x: 76, y: 618 },
+                buyer: { x: 76, y: 590 },
+            },
+
+            emailsPage: {
+                pageIndex: 8,
+                maxWidth: 440,
+                seller: { x: 108, y: 322 },
+                buyer: { x: 108, y: 295 },
+            },
+
+            signaturePage: {
+                pageIndex: 9,
+                maxWidth: 265,
+                buyer: {
+                    1: { x: 80, y: 585 },
+                    2: { x: 80, y: 474 },
+                },
+                seller: {
+                    1: { x: 80, y: 321 },
+                    2: { x: 80, y: 210 },
+                },
+            },
+        }
+}
+
+
+
 // "Sep 25, 2026" style, matching the date the signature was made
 const formatSignedDate = (date: Date): string =>
     date.toLocaleDateString('en-US', {
@@ -243,7 +307,6 @@ export const updateSignerNamesOnPdf = async (
         return agreementMainDoc ?? null;
     }
 
-    console.log("hit here");
 
     try {
         const response = await axios.get(agreementMainDoc, { responseType: 'arraybuffer' });
@@ -297,41 +360,10 @@ interface IPartySigner {
     email?: string | null;
 }
 
-// Layout for the 10-page purchase agreement (propertyAgreementDoc).
-// Measured from the page screenshots and converted to PDF points
-// (Letter 612x792, origin bottom-left). pageIndex is 0-based:
-// page 1 -> 0, page 9 -> 8, page 10 -> 9. `y` is the text baseline.
-const PROPERTY_AGREEMENT_LAYOUT = {
-    // Page 1: "Seller: ____" and "Buyer: ____" lines
-    partiesPage: {
-        pageIndex: 0,
-        maxWidth: 480,
-        seller: { x: 76, y: 618 },
-        buyer: { x: 76, y: 590 },
-    },
-    // Page 9: "Seller Email: ____" and "Buyer Email: ____" lines
-    emailsPage: {
-        pageIndex: 8,
-        maxWidth: 440,
-        seller: { x: 108, y: 442 },
-        buyer: { x: 108, y: 414 },
-    },
-    // Page 10: two Name slots per side (signature and date are handled elsewhere)
-    signaturePage: {
-        pageIndex: 9,
-        maxWidth: 265,
-        buyer: {
-            1: { x: 80, y: 583 },
-            2: { x: 80, y: 472 },
-        },
-        seller: {
-            1: { x: 80, y: 321 },
-            2: { x: 80, y: 210 },
-        },
-    },
-} as const;
 
-const PARTY_TEXT_COLOR = rgb(0.35, 0.35, 0.35);
+
+
+const PARTY_TEXT_COLOR = rgb(0, 0, 0);
 
 const joinSignerField = (signers: IPartySigner[], key: 'name' | 'email') =>
     signers
@@ -348,6 +380,7 @@ export const updatePropertyAgreementParties = async (
     role: PartyRole,
     signers: IPartySigner[],
     agreementId: string,
+    countyType: string,
 ) => {
     if (!propertyAgreementDoc || !signers?.length) {
         return propertyAgreementDoc ?? null;
@@ -389,7 +422,7 @@ export const updatePropertyAgreementParties = async (
             });
         };
 
-        const { partiesPage, emailsPage, signaturePage } = PROPERTY_AGREEMENT_LAYOUT;
+        const { partiesPage, emailsPage, signaturePage } = PROPERTY_AGREEMENT_LAYOUT(countyType);
 
         // Page 1: names
         drawFitted(
