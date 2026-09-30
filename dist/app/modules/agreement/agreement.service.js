@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.agreementService = exports.getAgreementByOfferId = exports.getAgreements = exports.signAgreement = exports.addBuyerAuthorizedSigner = exports.addSellerAuthorizedSigner = void 0;
+exports.agreementService = exports.getAgreementByOfferId = exports.getAgreements = exports.signDocument = exports.addBuyerAuthorizedSigner = exports.addSellerAuthorizedSigner = void 0;
 const offer_models_1 = require("../offer/offer.models");
 const agreement_model_1 = require("./agreement.model");
 const path_1 = __importDefault(require("path"));
@@ -31,11 +31,16 @@ const findSignerIndexByEmail = (signers = [], email) => {
     return signers.findIndex((signer) => { var _a; return String((_a = signer.email) !== null && _a !== void 0 ? _a : '').trim().toLowerCase() === normalizedEmail; });
 };
 const addSellerAuthorizedSigner = (offerId, payload) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const offer = yield offer_models_1.Offer.findByIdAndUpdate(offerId, { $set: { isSellerAddedAuthorizedSigner: true } }, { new: true }).populate('property').populate('buyer').populate('seller');
-    const result = yield agreement_model_1.Agreement.findOneAndUpdate({ offer: offerId }, { $push: { sellerAuthorizeSigner: payload } }, { new: true });
+    let agreement = yield agreement_model_1.Agreement.findOneAndUpdate({ offer: offerId }, { $push: { sellerAuthorizeSigner: payload } }, { new: true });
+    const property = offer === null || offer === void 0 ? void 0 : offer.property;
+    if (agreement) {
+        const propertyDocUrl = yield (0, agreement_utils_1.updatePropertyAgreementParties)(agreement.propertyAgreementDoc, 'seller', agreement.sellerAuthorizeSigner, agreement._id.toString(), (_a = property === null || property === void 0 ? void 0 : property.countyType) !== null && _a !== void 0 ? _a : '');
+        agreement = yield agreement_model_1.Agreement.findOneAndUpdate({ offer: offerId }, { propertyAgreementDoc: propertyDocUrl }, { new: true });
+    }
     const contactEmailPath = path_1.default.join(__dirname, '../../../../public/view/agreement.html');
     const seller = offer === null || offer === void 0 ? void 0 : offer.seller;
-    const property = offer === null || offer === void 0 ? void 0 : offer.property;
     payload.forEach((signer) => __awaiter(void 0, void 0, void 0, function* () {
         yield (0, mailSender_1.sendEmail)(signer.email, 'You have been added as an authorized signer for a property agreement', fs_1.default
             .readFileSync(contactEmailPath, 'utf8')
@@ -46,24 +51,24 @@ const addSellerAuthorizedSigner = (offerId, payload) => __awaiter(void 0, void 0
             .replace('{{agreementUrl}}', `${config_1.default.client_Url}/agreement/${offer === null || offer === void 0 ? void 0 : offer._id}?email=${signer === null || signer === void 0 ? void 0 : signer.email}&user=seller`)
             .replace('{{year}}', new Date().getFullYear().toString()));
     }));
-    return result;
+    return agreement;
 });
 exports.addSellerAuthorizedSigner = addSellerAuthorizedSigner;
 const addBuyerAuthorizedSigner = (offerId, payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const offer = yield offer_models_1.Offer.findByIdAndUpdate(offerId, { $set: { isBuyerAddedAuthorizedSigner: true } }, { new: true })
-        .populate('property')
-        .populate('buyer')
-        .populate('seller');
+    var _a;
+    const offer = yield offer_models_1.Offer.findByIdAndUpdate(offerId, { $set: { isBuyerAddedAuthorizedSigner: true } }, { new: true }).populate('property').populate('buyer').populate('seller');
+    const property = offer === null || offer === void 0 ? void 0 : offer.property;
     let agreement = yield agreement_model_1.Agreement.findOneAndUpdate({ offer: offerId }, { $push: { buyerAuthorizeSigner: payload } }, { new: true });
-    // Stamp the buyer name(s) into the correct slot(s) on the PDF now that the
-    // full signer list for this agreement is known.
     if (agreement) {
-        const updatedPdfUrl = yield (0, agreement_utils_1.updateSignerNamesOnPdf)(agreement.agreementMainDoc, agreement.buyerAuthorizeSigner, agreement._id.toString());
-        agreement = yield agreement_model_1.Agreement.findOneAndUpdate({ offer: offerId }, { agreementMainDoc: updatedPdfUrl }, { new: true });
+        // two independent PDFs, so stamp them in parallel
+        const [mainDocUrl, propertyDocUrl] = yield Promise.all([
+            (0, agreement_utils_1.updateSignerNamesOnPdf)(agreement.agreementMainDoc, agreement.buyerAuthorizeSigner, agreement._id.toString()),
+            (0, agreement_utils_1.updatePropertyAgreementParties)(agreement.propertyAgreementDoc, 'buyer', agreement.buyerAuthorizeSigner, agreement._id.toString(), (_a = property === null || property === void 0 ? void 0 : property.countyType) !== null && _a !== void 0 ? _a : ''),
+        ]);
+        agreement = yield agreement_model_1.Agreement.findOneAndUpdate({ offer: offerId }, { agreementMainDoc: mainDocUrl, propertyAgreementDoc: propertyDocUrl }, { new: true });
     }
     const contactEmailPath = path_1.default.join(__dirname, '../../../../public/view/agreement.html');
     const buyer = offer === null || offer === void 0 ? void 0 : offer.buyer;
-    const property = offer === null || offer === void 0 ? void 0 : offer.property;
     payload.forEach((signer) => __awaiter(void 0, void 0, void 0, function* () {
         yield (0, mailSender_1.sendEmail)(signer.email, 'You have been added as an authorized signer for a property agreement', fs_1.default
             .readFileSync(contactEmailPath, 'utf8')
@@ -77,50 +82,86 @@ const addBuyerAuthorizedSigner = (offerId, payload) => __awaiter(void 0, void 0,
     return agreement;
 });
 exports.addBuyerAuthorizedSigner = addBuyerAuthorizedSigner;
-const signAgreement = (offerId, payload) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
-    const agreement = yield agreement_model_1.Agreement.findOne({ offer: offerId });
+const signDocument = (offerId, payload) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    const agreement = yield agreement_model_1.Agreement.findOne({ offer: offerId }).populate('property');
     if (!agreement) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Authorized signer not found');
     }
-    // Buyer-only: only search the buyer's authorized signer list.
-    const buyerIndex = findSignerIndexByEmail((_a = agreement.buyerAuthorizeSigner) !== null && _a !== void 0 ? _a : [], payload.email);
-    if (buyerIndex < 0) {
-        throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Buyer Authorized signer not found');
+    const property = agreement.property;
+    // Assumption: distinguishing the two document layouts by the property's
+    // state — adjust this if countyType is actually stored elsewhere.
+    const countyType = ((_a = property === null || property === void 0 ? void 0 : property.state) === null || _a === void 0 ? void 0 : _a.toUpperCase()) === 'OHIO' ? 'OHIO' : 'OTHER';
+    if (payload.role === 'buyer') {
+        const buyerIndex = findSignerIndexByEmail((_b = agreement.buyerAuthorizeSigner) !== null && _b !== void 0 ? _b : [], payload.email);
+        if (buyerIndex < 0) {
+            throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Buyer Authorized signer not found');
+        }
+        const signerSubdoc = agreement.buyerAuthorizeSigner[buyerIndex];
+        if (signerSubdoc.isSigned) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'You have already signed');
+        }
+        const signedAt = new Date();
+        signerSubdoc.isSigned = true;
+        signerSubdoc.signatureImage = (_d = (_c = payload.signatureImage) !== null && _c !== void 0 ? _c : signerSubdoc.signatureImage) !== null && _d !== void 0 ? _d : '';
+        signerSubdoc.signedAt = signedAt;
+        agreement.markModified('buyerAuthorizeSigner');
+        const sellerAuthorizeSigner = (_e = agreement.sellerAuthorizeSigner) !== null && _e !== void 0 ? _e : [];
+        const areAllBuyerSignersSigned = agreement.buyerAuthorizeSigner.length
+            ? agreement.buyerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+        const areAllSellerSignersSigned = sellerAuthorizeSigner.length
+            ? sellerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+        const shouldCompleteAgreement = areAllBuyerSignersSigned && areAllSellerSignersSigned;
+        // existing behavior: stamp the main doc
+        agreement.agreementMainDoc = yield (0, agreement_utils_1.updateSignedAgreementPdf)(agreement.toObject(), 'buyer', buyerIndex, payload.signatureImage);
+        // additionally: stamp the buyer's signature/date onto the property
+        // agreement's page 10, buyer slot
+        agreement.propertyAgreementDoc = yield (0, agreement_utils_1.updatePropertyAgreementSignature)(agreement.propertyAgreementDoc, 'buyer', (buyerIndex + 1), payload.signatureImage, signedAt, agreement._id.toString(), countyType);
+        // @ts-ignore
+        agreement.status = shouldCompleteAgreement ? agreement_constants_1.AGREEMENT_STATUS.completed : agreement.status;
+        yield agreement.save();
+        if (shouldCompleteAgreement) {
+            yield properties_models_1.Property.findByIdAndUpdate(agreement.property, { status: properties_constants_1.STATUS.sold }, { new: true });
+        }
+        return agreement;
     }
-    const signerRole = 'buyer';
-    const signerIndex = buyerIndex;
-    // Mutate the real subdocument directly — this correctly reads/writes through
-    // its schema-defined getters/setters instead of trying to spread it.
-    const signerSubdoc = agreement.buyerAuthorizeSigner[signerIndex];
-    if (signerSubdoc.isSigned) {
-        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'You have already signed');
+    if (payload.role === 'seller') {
+        const sellerIndex = findSignerIndexByEmail((_f = agreement.sellerAuthorizeSigner) !== null && _f !== void 0 ? _f : [], payload.email);
+        if (sellerIndex < 0) {
+            throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Seller Authorized signer not found');
+        }
+        const signerSubdoc = agreement.sellerAuthorizeSigner[sellerIndex];
+        if (signerSubdoc.isSigned) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'You have already signed');
+        }
+        const signedAt = new Date();
+        signerSubdoc.isSigned = true;
+        signerSubdoc.signatureImage = (_h = (_g = payload.signatureImage) !== null && _g !== void 0 ? _g : signerSubdoc.signatureImage) !== null && _h !== void 0 ? _h : '';
+        signerSubdoc.signedAt = signedAt;
+        agreement.markModified('sellerAuthorizeSigner');
+        const buyerAuthorizeSigner = (_j = agreement.buyerAuthorizeSigner) !== null && _j !== void 0 ? _j : [];
+        const areAllBuyerSignersSigned = buyerAuthorizeSigner.length
+            ? buyerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+        const areAllSellerSignersSigned = agreement.sellerAuthorizeSigner.length
+            ? agreement.sellerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+        const shouldCompleteAgreement = areAllBuyerSignersSigned && areAllSellerSignersSigned;
+        // seller never touches agreementMainDoc — only the property agreement doc
+        agreement.propertyAgreementDoc = yield (0, agreement_utils_1.updatePropertyAgreementSignature)(agreement.propertyAgreementDoc, 'seller', (sellerIndex + 1), payload.signatureImage, signedAt, agreement._id.toString(), countyType);
+        // @ts-ignore
+        agreement.status = shouldCompleteAgreement ? agreement_constants_1.AGREEMENT_STATUS.completed : agreement.status;
+        yield agreement.save();
+        if (shouldCompleteAgreement) {
+            yield properties_models_1.Property.findByIdAndUpdate(agreement.property, { status: properties_constants_1.STATUS.sold }, { new: true });
+        }
+        return agreement;
     }
-    signerSubdoc.isSigned = true;
-    signerSubdoc.signatureImage = (_c = (_b = payload.signatureImage) !== null && _b !== void 0 ? _b : signerSubdoc.signatureImage) !== null && _c !== void 0 ? _c : '';
-    signerSubdoc.signedAt = new Date();
-    // Belt-and-suspenders: ensures Mongoose marks the array as changed even in
-    // edge cases where nested subdocument mutation isn't auto-detected.
-    agreement.markModified('buyerAuthorizeSigner');
-    const sellerAuthorizeSigner = (_d = agreement.sellerAuthorizeSigner) !== null && _d !== void 0 ? _d : [];
-    const areAllBuyerSignersSigned = agreement.buyerAuthorizeSigner.length
-        ? agreement.buyerAuthorizeSigner.every((signer) => signer.isSigned)
-        : true;
-    const areAllSellerSignersSigned = sellerAuthorizeSigner.length
-        ? sellerAuthorizeSigner.every((signer) => signer.isSigned)
-        : true;
-    const shouldCompleteAgreement = areAllBuyerSignersSigned && areAllSellerSignersSigned;
-    // @ts-ignore
-    agreement.status = shouldCompleteAgreement ? agreement_constants_1.AGREEMENT_STATUS.completed : agreement.status;
-    agreement.agreementMainDoc = yield (0, agreement_utils_1.updateSignedAgreementPdf)(agreement.toObject(), // safe here — toObject() correctly resolves all schema fields to plain values
-    signerRole, signerIndex, payload.signatureImage);
-    yield agreement.save();
-    if (shouldCompleteAgreement) {
-        yield properties_models_1.Property.findByIdAndUpdate(agreement.property, { status: properties_constants_1.STATUS.sold }, { new: true });
-    }
-    return agreement;
+    throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'Invalid signer role');
 });
-exports.signAgreement = signAgreement;
+exports.signDocument = signDocument;
 const getAgreements = (offerId) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield agreement_model_1.Agreement.findOne({ offer: offerId });
     return result;
@@ -134,7 +175,7 @@ exports.getAgreementByOfferId = getAgreementByOfferId;
 exports.agreementService = {
     addSellerAuthorizedSigner: exports.addSellerAuthorizedSigner,
     addBuyerAuthorizedSigner: exports.addBuyerAuthorizedSigner,
-    signAgreement: exports.signAgreement,
+    signDocument: exports.signDocument,
     getAgreements: exports.getAgreements,
     getAgreementByOfferId: exports.getAgreementByOfferId
 };

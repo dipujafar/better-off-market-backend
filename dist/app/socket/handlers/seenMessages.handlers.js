@@ -36,7 +36,7 @@ const SeenMessageHandlers = (io, chatId, user, callback) => __awaiter(void 0, vo
         (0, callbackFn_1.default)(callback, { success: true, message: 'Messages marked as seen' });
     }
     catch (error) {
-        console.log(error);
+        // console.log(error);
         (0, callbackFn_1.default)(callback, { success: false, message: (error === null || error === void 0 ? void 0 : error.message) || 'seen message failed' });
     }
 });

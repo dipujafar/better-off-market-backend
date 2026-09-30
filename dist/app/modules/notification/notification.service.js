@@ -56,7 +56,7 @@ const markAsDone = (id) => __awaiter(void 0, void 0, void 0, function* () {
         $set: {
             read: true,
         },
-    }, { new: true });
+    });
     return result;
 });
 const deleteNotification = (id) => __awaiter(void 0, void 0, void 0, function* () {

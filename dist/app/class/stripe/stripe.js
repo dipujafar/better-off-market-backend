@@ -136,14 +136,14 @@ class StripeService {
     getCheckoutSession(product_1, success_url_1, cancel_url_1) {
         return __awaiter(this, arguments, void 0, function* (product, success_url, cancel_url, currency = 'usd', customer = '', // Optional: customer ID for Stripe
         payment_method_types = ['card']) {
-            console.log({
-                product,
-                success_url,
-                cancel_url,
-                currency,
-                customer,
-                payment_method_types,
-            });
+            // console.log({
+            //   product,
+            //   success_url,
+            //   cancel_url,
+            //   currency,
+            //   customer,
+            //   payment_method_types,
+            // });
             try {
                 if (!(product === null || product === void 0 ? void 0 : product.name) || !(product === null || product === void 0 ? void 0 : product.amount) || !(product === null || product === void 0 ? void 0 : product.quantity)) {
                     throw new Error('Product details are incomplete.');

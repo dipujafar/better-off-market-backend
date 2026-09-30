@@ -55,9 +55,10 @@ const getAgreementByOfferId = (0, catchAsync_1.default)((req, res) => __awaiter(
 }));
 const signAgreement = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const result = yield agreement_service_1.agreementService.signAgreement(req.params.id, {
+    const result = yield agreement_service_1.agreementService.signDocument(req.params.id, {
         email: req.body.email,
         signatureImage: (_a = req.body.signatureImage) !== null && _a !== void 0 ? _a : req.body.signature,
+        role: req.body.role
     });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_1.default.OK,

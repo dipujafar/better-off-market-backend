@@ -21,7 +21,7 @@ const sendNotificationMessage = (_a) => __awaiter(void 0, [_a], void 0, function
         notificationPayload.link = link;
     }
     yield notification_model_1.Notification.create(Object.assign(Object.assign({}, notificationPayload), { receiver: userId }));
-    console.log("saved notification");
+    // console.log("saved notification")
     if (fcmToken) {
         yield (0, firebase_1.sendNotification)([fcmToken], Object.assign(Object.assign({}, notificationPayload), { userId: userId }));
     }
