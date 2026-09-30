@@ -237,7 +237,7 @@ export default ${capitalizeFirstLetter(folderName)};`;
     fs.writeFileSync(filePath, content, 'utf8');
   });
 
-  console.log(`Folder "${folderName}" and files created successfully.`);
+  // console.log(`Folder "${folderName}" and files created successfully.`);
 }
 
 // Prompting the user for the parent folder path and folder name

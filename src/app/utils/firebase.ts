@@ -20,7 +20,7 @@ export const sendNotification = async (
   fcmToken: string[],
   payload: NotificationPayload,
 ): Promise<any> => {
-  console.log("notification sending ...")
+  // console.log("notification sending ...")
   try {
     const response = await admin.messaging().sendEachForMulticast({
       tokens: fcmToken,
@@ -41,7 +41,7 @@ export const sendNotification = async (
       },
     });
 
-    console.log("notification sent")
+    // console.log("notification sent")
 
     return response;
   } catch (error: any) {

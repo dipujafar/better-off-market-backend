@@ -24,7 +24,7 @@ export const sendNotificationMessage = async ({ message, description, userId, fc
         receiver: userId,
     });
 
-    console.log("saved notification")
+    // console.log("saved notification")
 
     if (fcmToken) {
         await sendNotification([fcmToken], {

@@ -136,14 +136,14 @@ class StripeService<T> {
     customer: string = '', // Optional: customer ID for Stripe
     payment_method_types: Array<'card' | 'paypal' | 'ideal'> = ['card'],
   ) {
-    console.log({
-      product,
-      success_url,
-      cancel_url,
-      currency,
-      customer,
-      payment_method_types,
-    });
+    // console.log({
+    //   product,
+    //   success_url,
+    //   cancel_url,
+    //   currency,
+    //   customer,
+    //   payment_method_types,
+    // });
     try {
       if (!product?.name || !product?.amount || !product?.quantity) {
         throw new Error('Product details are incomplete.');

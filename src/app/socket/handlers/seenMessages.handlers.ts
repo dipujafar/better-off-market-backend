@@ -36,7 +36,7 @@ const SeenMessageHandlers = async (
 
         callbackFn(callback, { success: true, message: 'Messages marked as seen' });
     } catch (error: any) {
-        console.log(error);
+        // console.log(error);
         callbackFn(callback, { success: false, message: error?.message || 'seen message failed' });
     }
 };

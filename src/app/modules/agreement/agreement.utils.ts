@@ -85,6 +85,35 @@ const PROPERTY_AGREEMENT_LAYOUT = (countyType: string) => {
 }
 
 
+// Per-countyType, per-role, per-slot offsets — each document layout has its
+// own Name→Signature/Date gap, so these can't share one flat table.
+const SIGNATURE_DATE_ROW_OFFSETS: Record<
+    string,
+    Record<PartyRole, Record<1 | 2, { signature: number; date: number }>>
+> = {
+    OHIO: {
+        buyer: {
+            1: { signature: 63, date: 56 },
+            2: { signature: 63, date: 56 },
+        },
+        seller: {
+            1: { signature: 63, date: 56 },
+            2: { signature: 63, date: 56 },
+        },
+    },
+    OTHER: {
+        buyer: {
+            1: { signature: 63, date: 56 },
+            2: { signature: 63, date: 56 },
+        },
+        seller: {
+            1: { signature: 63, date: 56 },
+            2: { signature: 63, date: 56 },
+        },
+    },
+};
+
+
 
 // "Sep 25, 2026" style, matching the date the signature was made
 const formatSignedDate = (date: Date): string =>
@@ -158,7 +187,7 @@ export const updateSignedAgreementPdf = async (
                 return;
             }
 
-            const isDateField = fieldName.endsWith('_date');
+            // const isDateField = fieldName.endsWith('_date');
             // Lighter weight for the date text — Helvetica has no true "Light" weight
             // built into pdf-lib's 14 standard fonts, so we approximate lightness
             // with a lighter gray fill rather than a bold/regular font swap.
@@ -167,9 +196,9 @@ export const updateSignedAgreementPdf = async (
             target.page.drawText(String(value ?? ''), {
                 x: target.rect.x + 6,
                 y: target.rect.y - 4,
-                size: isDateField ? 13 : 10,
+                size: 11,
                 // font,
-                color: isDateField ? rgb(0.35, 0.35, 0.35) : rgb(0, 0, 0),
+                color: rgb(0, 0, 0)
             });
         };
 
@@ -298,6 +327,8 @@ export const updateSignedAgreementPdf = async (
 // Fills in the buyer name(s) at the "Name:" line for each signer slot on
 // page 2. Handles 1 or 2 signers — index 0 goes to slot 1, index 1 to slot 2.
 // Does NOT touch signature/date fields — call this only for name placement.
+
+// ========================================================================= buyer sign in main pdf =======================================================
 export const updateSignerNamesOnPdf = async (
     agreementMainDoc: string,
     buyerAuthorizeSigner: { name: string }[],
@@ -330,7 +361,7 @@ export const updateSignerNamesOnPdf = async (
                 y: layout.name.y - 4,
                 size: 13,
                 // font,
-                color: rgb(0.35, 0.35, 0.35),
+                color: rgb(0, 0, 0)
             });
         });
 
@@ -349,9 +380,123 @@ export const updateSignerNamesOnPdf = async (
 };
 
 
+// ========================================================================= set sign seller and buyer name in property agreement pdf=======================================================
+
+// Offsets relative to each slot's tuned `name` y-position, derived from the
+// same ~65pt (name→signature) / ~18pt (signature→date) spacing already
+// proven correct in PAGE_2_SIGNER_LAYOUT. dateOffsetX pushes the date past
+// the signature line's width, next to the "Date:" label on the same row.
+// const SIGNATURE_ROW_OFFSET_Y = 65;
+// const DATE_ROW_OFFSET_Y = 83;
+const DATE_OFFSET_X = 320;
+
+// Stamps ONE signer's signature image + signed date onto the property
+// agreement's page 10, at the given role/slot position.
+export const updatePropertyAgreementSignature = async (
+    propertyAgreementDoc: string,
+    role: PartyRole,
+    slotNumber: 1 | 2,
+    signatureImage: string | undefined,
+    signedAt: Date,
+    agreementId: string,
+    countyType: string,
+) => {
+    if (!propertyAgreementDoc || !signatureImage) {
+        return propertyAgreementDoc ?? null;
+    }
+
+    try {
+        const response = await axios.get(propertyAgreementDoc, { responseType: 'arraybuffer' });
+        const pdfBytes = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data);
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+        const { signaturePage } = PROPERTY_AGREEMENT_LAYOUT(countyType);
+        const page = pdfDoc.getPages()[signaturePage.pageIndex];
+
+        if (!page) {
+            console.warn(`Property agreement has no page at index ${signaturePage.pageIndex}, skipping signature`);
+            return propertyAgreementDoc;
+        }
+
+        const namePos = signaturePage[role][slotNumber];
+        if (!namePos) {
+            console.warn(`No signature slot defined for ${role} #${slotNumber}`);
+            return propertyAgreementDoc;
+        }
+
+        const offsetTable = SIGNATURE_DATE_ROW_OFFSETS[countyType] ?? SIGNATURE_DATE_ROW_OFFSETS.OTHER;
+        const offsets = offsetTable[role][slotNumber];
+        const signatureY = namePos.y - offsets.signature;
+        const dateY = namePos.y - offsets.date;
+
+        const trimmedImage = String(signatureImage).trim();
+        const imageData = trimmedImage.startsWith('data:image')
+            ? trimmedImage.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '')
+            : trimmedImage;
+        const buffer = Buffer.from(imageData, 'base64');
+
+        let image: any = null;
+        try {
+            const signatureHeader = buffer.subarray(0, 8).toString('hex');
+            if (signatureHeader === '89504e470d0a1a0a') {
+                image = await pdfDoc.embedPng(buffer);
+            } else if (signatureHeader.startsWith('ffd8')) {
+                image = await pdfDoc.embedJpg(buffer);
+            }
+        } catch {
+            // ignore unsupported signature image data
+        }
+
+        if (image) {
+            const boxWidth = signaturePage.maxWidth;
+            const boxHeight = 25;
+            const imageAspectRatio = image.width / image.height;
+            const boxAspectRatio = boxWidth / boxHeight;
+
+            let drawWidth: number;
+            let drawHeight: number;
+
+            if (imageAspectRatio > boxAspectRatio) {
+                drawWidth = boxWidth;
+                drawHeight = boxWidth / imageAspectRatio;
+            } else {
+                drawHeight = boxHeight;
+                drawWidth = boxHeight * imageAspectRatio;
+            }
+
+            const offsetX = namePos.x + (boxWidth - drawWidth) / 2;
+            const offsetY = signatureY + (boxHeight - drawHeight) / 2;
+
+            page.drawImage(image, { x: offsetX, y: offsetY, width: drawWidth, height: drawHeight });
+        }
+
+        page.drawText(formatSignedDate(signedAt), {
+            x: namePos.x + DATE_OFFSET_X,
+            y: dateY,
+            size: 13,
+            font,
+            color: rgb(0, 0, 0),
+        });
+
+        const updatedPdf = await pdfDoc.save();
+        const updatedUrl = await uploadToS3({
+            file: { buffer: updatedPdf, mimetype: 'application/pdf' },
+            fileName: `agreements/property_agreement_${agreementId ?? 'agreement'}_${Date.now()}.pdf`,
+        });
+
+        return updatedUrl ?? propertyAgreementDoc;
+    } catch (error) {
+        console.warn('Failed to stamp signature onto property agreement PDF, keeping original PDF:', error);
+        return propertyAgreementDoc;
+    }
+};
 
 
-// =======================================================================
+
+
+
+// ======================================================================= set seller and buyer name in property agreement pdf=======================================================
 
 type PartyRole = 'buyer' | 'seller';
 
@@ -463,3 +608,7 @@ export const updatePropertyAgreementParties = async (
         return propertyAgreementDoc;
     }
 };
+
+
+
+

@@ -46,9 +46,10 @@ const getAgreementByOfferId = catchAsync(async (req: Request, res: Response) => 
 })
 
 const signAgreement = catchAsync(async (req: Request, res: Response) => {
-    const result = await agreementService.signAgreement(req.params.id, {
+    const result = await agreementService.signDocument(req.params.id, {
         email: req.body.email,
         signatureImage: req.body.signatureImage ?? req.body.signature,
+        role: req.body.role
     });
 
     sendResponse(res, {

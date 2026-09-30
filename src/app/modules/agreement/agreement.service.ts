@@ -11,7 +11,7 @@ import AppError from "../../error/AppError";
 import { Property } from "../properties/properties.models";
 import { STATUS } from "../properties/properties.constants";
 import { AGREEMENT_STATUS } from "./agreement.constants";
-import { updatePropertyAgreementParties, updateSignedAgreementPdf, updateSignerNamesOnPdf } from "./agreement.utils";
+import { updatePropertyAgreementParties, updatePropertyAgreementSignature, updateSignedAgreementPdf, updateSignerNamesOnPdf } from "./agreement.utils";
 
 
 const findSignerIndexByEmail = (signers: IAuthorizeSigner[] = [], email: string) => {
@@ -144,71 +144,139 @@ export const addBuyerAuthorizedSigner = async (offerId: string, payload: IAuthor
 };
 
 
-export const signAgreement = async (
+export const signDocument = async (
     offerId: string,
-    payload: { email: string; signatureImage?: string, role: string },
+    payload: { email: string; signatureImage?: string; role: 'buyer' | 'seller' },
 ) => {
-    const agreement = await Agreement.findOne({ offer: offerId });
+    const agreement = await Agreement.findOne({ offer: offerId }).populate('property');
 
     if (!agreement) {
         throw new AppError(httpStatus.NOT_FOUND, 'Authorized signer not found');
     }
 
-    // Buyer-only: only search the buyer's authorized signer list.
-    const buyerIndex = findSignerIndexByEmail(agreement.buyerAuthorizeSigner ?? [], payload.email);
+    const property: any = agreement.property;
+    // Assumption: distinguishing the two document layouts by the property's
+    // state — adjust this if countyType is actually stored elsewhere.
+    const countyType = property?.state?.toUpperCase() === 'OHIO' ? 'OHIO' : 'OTHER';
 
-    if (buyerIndex < 0) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Buyer Authorized signer not found');
+    if (payload.role === 'buyer') {
+        const buyerIndex = findSignerIndexByEmail(agreement.buyerAuthorizeSigner ?? [], payload.email);
+
+        if (buyerIndex < 0) {
+            throw new AppError(httpStatus.NOT_FOUND, 'Buyer Authorized signer not found');
+        }
+
+        const signerSubdoc = agreement.buyerAuthorizeSigner[buyerIndex];
+
+        if (signerSubdoc.isSigned) {
+            throw new AppError(httpStatus.BAD_REQUEST, 'You have already signed');
+        }
+
+        const signedAt = new Date();
+        signerSubdoc.isSigned = true;
+        signerSubdoc.signatureImage = payload.signatureImage ?? signerSubdoc.signatureImage ?? '';
+        signerSubdoc.signedAt = signedAt;
+        agreement.markModified('buyerAuthorizeSigner');
+
+        const sellerAuthorizeSigner = agreement.sellerAuthorizeSigner ?? [];
+
+        const areAllBuyerSignersSigned = agreement.buyerAuthorizeSigner.length
+            ? agreement.buyerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+
+        const areAllSellerSignersSigned = sellerAuthorizeSigner.length
+            ? sellerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+
+        const shouldCompleteAgreement = areAllBuyerSignersSigned && areAllSellerSignersSigned;
+
+        // existing behavior: stamp the main doc
+        agreement.agreementMainDoc = await updateSignedAgreementPdf(
+            agreement.toObject(),
+            'buyer',
+            buyerIndex,
+            payload.signatureImage,
+        );
+
+        // additionally: stamp the buyer's signature/date onto the property
+        // agreement's page 10, buyer slot
+        agreement.propertyAgreementDoc = await updatePropertyAgreementSignature(
+            agreement.propertyAgreementDoc,
+            'buyer',
+            (buyerIndex + 1) as 1 | 2,
+            payload.signatureImage,
+            signedAt,
+            agreement._id.toString(),
+            countyType,
+        );
+
+        // @ts-ignore
+        agreement.status = shouldCompleteAgreement ? AGREEMENT_STATUS.completed : agreement.status;
+
+        await agreement.save();
+
+        if (shouldCompleteAgreement) {
+            await Property.findByIdAndUpdate(agreement.property, { status: STATUS.sold }, { new: true });
+        }
+
+        return agreement;
     }
 
-    const signerRole: 'buyer' = 'buyer';
-    const signerIndex = buyerIndex;
+    if (payload.role === 'seller') {
+        const sellerIndex = findSignerIndexByEmail(agreement.sellerAuthorizeSigner ?? [], payload.email);
 
-    // Mutate the real subdocument directly — this correctly reads/writes through
-    // its schema-defined getters/setters instead of trying to spread it.
-    const signerSubdoc = agreement.buyerAuthorizeSigner[signerIndex];
+        if (sellerIndex < 0) {
+            throw new AppError(httpStatus.NOT_FOUND, 'Seller Authorized signer not found');
+        }
 
-    if (signerSubdoc.isSigned) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'You have already signed');
+        const signerSubdoc = agreement.sellerAuthorizeSigner[sellerIndex];
+
+        if (signerSubdoc.isSigned) {
+            throw new AppError(httpStatus.BAD_REQUEST, 'You have already signed');
+        }
+
+        const signedAt = new Date();
+        signerSubdoc.isSigned = true;
+        signerSubdoc.signatureImage = payload.signatureImage ?? signerSubdoc.signatureImage ?? '';
+        signerSubdoc.signedAt = signedAt;
+        agreement.markModified('sellerAuthorizeSigner');
+
+        const buyerAuthorizeSigner = agreement.buyerAuthorizeSigner ?? [];
+
+        const areAllBuyerSignersSigned = buyerAuthorizeSigner.length
+            ? buyerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+
+        const areAllSellerSignersSigned = agreement.sellerAuthorizeSigner.length
+            ? agreement.sellerAuthorizeSigner.every((signer) => signer.isSigned)
+            : false;
+
+        const shouldCompleteAgreement = areAllBuyerSignersSigned && areAllSellerSignersSigned;
+
+        // seller never touches agreementMainDoc — only the property agreement doc
+        agreement.propertyAgreementDoc = await updatePropertyAgreementSignature(
+            agreement.propertyAgreementDoc,
+            'seller',
+            (sellerIndex + 1) as 1 | 2,
+            payload.signatureImage,
+            signedAt,
+            agreement._id.toString(),
+            countyType,
+        );
+
+        // @ts-ignore
+        agreement.status = shouldCompleteAgreement ? AGREEMENT_STATUS.completed : agreement.status;
+
+        await agreement.save();
+
+        if (shouldCompleteAgreement) {
+            await Property.findByIdAndUpdate(agreement.property, { status: STATUS.sold }, { new: true });
+        }
+
+        return agreement;
     }
 
-    signerSubdoc.isSigned = true;
-    signerSubdoc.signatureImage = payload.signatureImage ?? signerSubdoc.signatureImage ?? '';
-    signerSubdoc.signedAt = new Date();
-
-    // Belt-and-suspenders: ensures Mongoose marks the array as changed even in
-    // edge cases where nested subdocument mutation isn't auto-detected.
-    agreement.markModified('buyerAuthorizeSigner');
-
-    const sellerAuthorizeSigner = agreement.sellerAuthorizeSigner ?? [];
-
-    const areAllBuyerSignersSigned = agreement.buyerAuthorizeSigner.length
-        ? agreement.buyerAuthorizeSigner.every((signer) => signer.isSigned)
-        : false;
-
-    const areAllSellerSignersSigned = sellerAuthorizeSigner.length
-        ? sellerAuthorizeSigner.every((signer) => signer.isSigned)
-        : false;
-
-    const shouldCompleteAgreement = areAllBuyerSignersSigned && areAllSellerSignersSigned;
-
-    // @ts-ignore
-    agreement.status = shouldCompleteAgreement ? AGREEMENT_STATUS.completed : agreement.status;
-
-    agreement.agreementMainDoc = await updateSignedAgreementPdf(
-        agreement.toObject(), // safe here — toObject() correctly resolves all schema fields to plain values
-        signerRole,
-        signerIndex,
-        payload.signatureImage,
-    );
-
-    await agreement.save();
-
-    if (shouldCompleteAgreement) {
-        await Property.findByIdAndUpdate(agreement.property, { status: STATUS.sold }, { new: true });
-    }
-
-    return agreement;
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid signer role');
 };
 
 export const getAgreements = async (offerId: string) => {
@@ -226,7 +294,7 @@ export const getAgreementByOfferId = async (offerId: string) => {
 export const agreementService = {
     addSellerAuthorizedSigner,
     addBuyerAuthorizedSigner,
-    signAgreement,
+    signDocument,
     getAgreements,
     getAgreementByOfferId
 }
