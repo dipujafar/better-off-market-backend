@@ -10,6 +10,8 @@ import { generateOfferPdf, generatePropertyPdf } from './offer.utils';
 import { Agreement } from '../agreement/agreement.model';
 import mongoose from 'mongoose';
 import { sendNotificationMessage } from '../notification/notification.utils';
+import { propertyAddress } from '../properties/properties.utils';
+import { User } from '../user/user.models';
 
 // Buyer submits the first offer on a property
 const createOffer = async (
@@ -18,7 +20,7 @@ const createOffer = async (
   terms: IOfferTerms,
   supportingDocuments: IDocument[],
 ) => {
-  const property = await Property.findById(propertyId);
+  const property = await Property.findById(propertyId).populate('seller');
   if (!property) {
     throw new AppError(httpStatus.NOT_FOUND, 'Property not found');
   }
@@ -27,7 +29,7 @@ const createOffer = async (
     throw new AppError(httpStatus.BAD_REQUEST, 'Property is not available for offer');
   }
 
-  if (property.seller.toString() === buyerId) {
+  if (property.seller._id.toString() === buyerId) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       'You cannot make an offer on your own property',
@@ -49,7 +51,7 @@ const createOffer = async (
   const result = await Offer.create({
     property: propertyId,
     buyer: buyerId,
-    seller: property.seller,
+    seller: property.seller._id,
     status: OFFER_STATUS.pending,
     currentRound: 1,
     lastActionBy: 'buyer',
@@ -68,6 +70,32 @@ const createOffer = async (
 
   await Property.findByIdAndUpdate(propertyId, { $inc: { totalOffers: 1 } });
 
+  const seller = property.seller as any;
+  const buyer = await User.findById(buyerId).select('-password');
+
+  const notificationPayload = {
+    message: `A Offer received from ${buyer?.name} for your property `,
+    description: `Please review the offer for your property ${propertyAddress(property.streetAddress, property.city, property.state, property.zipCode, property.county)} and respond accordingly.`,
+    userId: seller._id.toString(),
+    fcmToken: seller?.fcmToken,
+    link: `/user/offers-received/${result._id}`,
+  };
+
+  sendNotificationMessage(notificationPayload);
+
+
+  const admin = await User.GetAdminUser();
+
+  const adminNotificationPayload = {
+    message: `A Offer submitted for  property ${propertyAddress(property.streetAddress, property.city, property.state, property.zipCode, property.county)} by ${buyer?.name}`,
+    description: `${buyer?.name} has  submitted an offer for ${seller?.name} property ${propertyAddress(property.streetAddress, property.city, property.state, property.zipCode, property.county)}.`,
+    userId: admin._id?.toString()!,
+    fcmToken: admin?.fcmToken!,
+    link: `/orders/${result._id}`,
+  };
+
+  sendNotificationMessage(adminNotificationPayload);
+
   return result;
 };
 
@@ -77,7 +105,7 @@ const counterOffer = async (
   userId: string,
   terms: IOfferTerms,
 ) => {
-  const offer = await Offer.findById(offerId);
+  const offer = await Offer.findById(offerId)?.populate('property')?.populate('buyer')?.populate('seller');
   if (!offer) {
     throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
   }
@@ -89,8 +117,8 @@ const counterOffer = async (
     );
   }
 
-  const isBuyer = offer.buyer.toString() === userId;
-  const isSeller = offer.seller.toString() === userId;
+  const isBuyer = offer.buyer._id.toString() === userId;
+  const isSeller = offer.seller._id.toString() === userId;
 
   if (!isBuyer && !isSeller) {
     throw new AppError(
@@ -130,6 +158,32 @@ const counterOffer = async (
     },
     { new: true, runValidators: true },
   );
+
+
+  const buyer = offer?.buyer as any;
+  const seller = offer?.seller as any;
+  const property = offer?.property as any;
+
+  const notificationPayload = {
+    message: `A counter offer has been received from ${actingAs} ${actingAs === 'buyer' ? buyer?.name : seller?.name}.`,
+    description: `${actingAs === 'buyer' ? buyer?.name : seller?.name} has submitted a counter offer for the property ${propertyAddress(property.streetAddress, property.city, property.state, property.zipCode, property.county)}.`,
+    userId: actingAs === 'buyer' ? seller._id.toString() : buyer._id.toString(),
+    fcmToken: actingAs === 'buyer' ? seller.fcmToken : buyer.fcmToken,
+    link: actingAs === 'buyer' ? `/user/offers-received/${offerId}` : `/review-sent-offer?offer=${offerId}`,
+  };
+
+  sendNotificationMessage(notificationPayload);
+
+  const admin = await User.GetAdminUser();
+
+  const adminNotificationPayload = {
+    message: `A new counter offer has been submitted.`,
+    description: `A counter offer has been submitted from ${actingAs} ${actingAs === 'buyer' ? buyer?.name : seller?.name} for the property ${propertyAddress(property.streetAddress, property.city, property.state, property.zipCode, property.county)}.`,
+    userId: admin._id?.toString()!,
+    fcmToken: admin.fcmToken,
+  };
+
+  sendNotificationMessage(adminNotificationPayload);
 
   return result;
 };
@@ -307,8 +361,6 @@ const acceptOffer = async (offerId: string, userId: string) => {
       throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
     }
 
-
-
     if (CLOSED_OFFER_STATUSES.includes(offer.status)) {
       throw new AppError(httpStatus.BAD_REQUEST, 'This offer is already closed or on process');
     }
@@ -352,7 +404,7 @@ const acceptOffer = async (offerId: string, userId: string) => {
     );
 
 
-    // // const admin = await User.GetAdminUser();
+    // ======= notification logic =======
     const buyer = offer?.buyer as any;
     const seller = offer?.seller as any;
     const property = offer?.property as any;
@@ -368,7 +420,6 @@ const acceptOffer = async (offerId: string, userId: string) => {
     sendNotificationMessage(notificationPayload);
 
 
-
     await session.commitTransaction();
     return result;
   } catch (error) {
@@ -380,13 +431,22 @@ const acceptOffer = async (offerId: string, userId: string) => {
 };
 // Either party rejects the current terms on the table, closing the thread
 const rejectOffer = async (offerId: string, userId: string) => {
-  const offer = await Offer.findById(offerId);
+  const offer = await Offer.findById(offerId)
+    .populate('property')
+    .populate('buyer')
+    .populate('seller');
+
   if (!offer) {
     throw new AppError(httpStatus.NOT_FOUND, 'Offer not found');
   }
 
-  const isBuyer = offer.buyer.toString() === userId;
-  const isSeller = offer.seller.toString() === userId;
+
+  const isBuyer = offer.buyer._id.toString() === userId;
+  const isSeller = offer.seller._id.toString() === userId;
+
+  const offerRejectedBy =
+    offer?.buyer?._id?.toString() === userId ? 'buyer' : 'seller';
+
 
   if (!isBuyer && !isSeller) {
     throw new AppError(
@@ -415,6 +475,23 @@ const rejectOffer = async (offerId: string, userId: string) => {
     { status: OFFER_STATUS.rejected },
     { new: true },
   );
+
+
+  // ======= notification logic =======
+  const buyer = offer?.buyer as any;
+  const seller = offer?.seller as any;
+  const property = offer?.property as any;
+
+  const notificationPayload = {
+    message: offerRejectedBy === 'seller' ? `Your offer has been rejected by seller. ` : `Your offer has been rejected by buyer. `,
+    description: `The offer has been rejected by ${offerRejectedBy === 'seller' ? "seller" : "buyer"} ${offerRejectedBy === 'seller' ? seller?.name : buyer?.name} for the property  ${property?.streetAddress}, ${property?.city}, ${property?.state}, ${property?.zipCode}, ${property?.county}.`,
+    userId: offerRejectedBy === 'seller' ? buyer?._id?.toString() : seller?._id?.toString(),
+    fcmToken: offerRejectedBy === 'seller' ? buyer?.fcmToken : seller?.fcmToken,
+    link: offerRejectedBy === 'seller' ? `/review-sent-offer?offer=${offer?._id}` : `/user/offers-received/${offer?._id}`,
+  };
+
+  sendNotificationMessage(notificationPayload);
+
 
   return result;
 };

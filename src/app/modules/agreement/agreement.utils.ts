@@ -44,12 +44,12 @@ const PROPERTY_AGREEMENT_LAYOUT = (countyType: string) => {
                 pageIndex: 9,
                 maxWidth: 265,
                 buyer: {
-                    1: { x: 80, y: 703 },
-                    2: { x: 80, y: 591 },
+                    1: { x: 80, y: 585 },
+                    2: { x: 80, y: 474 },
                 },
                 seller: {
-                    1: { x: 80, y: 439 },
-                    2: { x: 80, y: 327 },
+                    1: { x: 80, y: 321 },
+                    2: { x: 80, y: 210 },
                 },
             },
         }

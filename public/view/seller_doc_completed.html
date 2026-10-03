@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Seller Authentication Confirmed</title>
+    <title>Document Signature Complete</title>
     <style>
       body {
         margin: 0;
@@ -74,18 +74,15 @@
         color: #fff !important;
         font-weight: 600;
         margin-top: 16px;
-        width: 90%;
-        margin: auto;
-        text-align: center;
       }
       .btn:hover {
         background: #5ba4c4;
       }
-      /* .note {
+      .note {
         font-size: 12px;
         color: #6b6b6b;
         margin-top: 14px;
-      } */
+      }
       .footer {
         font-size: 12px;
         color: #8b8b8b;
@@ -102,13 +99,12 @@
             <tr>
               <td>
                 <div class="card">
-                  <div class="header">Assigned Authorized Signers</div>
+                  <div class="header">Document Signature Complete</div>
                   <div class="content">
                     <p>Hello {{userName}},</p>
                     <p>
-                      You have been received and assigned as the
-                      <strong>Authorized Signers</strong> for the following
-                      property, assigned by <strong>{{name}}</strong>.
+                      All authorized signers have signed the document for the
+                      following property:
                     </p>
 
                     <table class="field-table" role="presentation">
@@ -116,24 +112,13 @@
                         <td class="field-label">Property Address</td>
                         <td class="field-value">{{propertyAddress}}</td>
                       </tr>
-                      <tr>
-                        <td class="field-label">Assigned By</td>
-                        <td class="field-value">{{name}}</td>
-                      </tr>
                     </table>
 
-                    <p>
-                      Please review agreement details and proceed to review the
-                      agreement clicking the button below.
-                    </p>
-
-                    <a href="{{agreementUrl}}" target="_blank" class="btn"
-                      >View Documents</a
-                    >
+                    <a href="{{documentUrl}}" class="btn">View Document</a>
 
                     <!-- <p class="note">
-                      If you weren't expecting this email, you can safely ignore
-                      it.
+                      If you weren't expecting this email, you can safely
+                      ignore it.
                     </p> -->
                   </div>
                   <div class="footer">

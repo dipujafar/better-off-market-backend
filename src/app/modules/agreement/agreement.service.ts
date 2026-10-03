@@ -217,6 +217,9 @@ export const signDocument = async (
 
         if (shouldCompleteAgreement) {
             await Property.findByIdAndUpdate(agreement.property, { status: STATUS.sold }, { new: true });
+            
+
+
         }
 
         return agreement;

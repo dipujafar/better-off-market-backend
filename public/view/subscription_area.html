@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Seller Authentication Confirmed</title>
+    <title>New Listing in Your Subscription Area</title>
     <style>
       body {
         margin: 0;
@@ -74,9 +74,6 @@
         color: #fff !important;
         font-weight: 600;
         margin-top: 16px;
-        width: 90%;
-        margin: auto;
-        text-align: center;
       }
       .btn:hover {
         background: #5ba4c4;
@@ -102,13 +99,15 @@
             <tr>
               <td>
                 <div class="card">
-                  <div class="header">Assigned Authorized Signers</div>
+                  <div class="header">
+                    New Listing in Your Subscription Area
+                  </div>
                   <div class="content">
                     <p>Hello {{userName}},</p>
                     <p>
-                      You have been received and assigned as the
-                      <strong>Authorized Signers</strong> for the following
-                      property, assigned by <strong>{{name}}</strong>.
+                      Your subscription area has a new listing added on
+                      <strong>BetterOffMarket</strong>. You can view the full
+                      details below:
                     </p>
 
                     <table class="field-table" role="presentation">
@@ -117,24 +116,23 @@
                         <td class="field-value">{{propertyAddress}}</td>
                       </tr>
                       <tr>
-                        <td class="field-label">Assigned By</td>
-                        <td class="field-value">{{name}}</td>
+                        <td class="field-label">Listed By</td>
+                        <td class="field-value">{{sellerName}}</td>
+                      </tr>
+                      <tr>
+                        <td class="field-label">Buyer Name</td>
+                        <td class="field-value">{{buyerName}}</td>
                       </tr>
                     </table>
 
-                    <p>
-                      Please review agreement details and proceed to review the
-                      agreement clicking the button below.
-                    </p>
-
-                    <a href="{{agreementUrl}}" target="_blank" class="btn"
-                      >View Documents</a
-                    >
+                    <a href="{{propertyUrl}}" class="btn">View Property</a>
 
                     <!-- <p class="note">
-                      If you weren't expecting this email, you can safely ignore
-                      it.
+                      If you no longer wish to receive alerts for this area, you
+                      can update your subscription preferences in your account
+                      settings.
                     </p> -->
+                    
                   </div>
                   <div class="footer">
                     &copy; {{year}} BetterOffMarket. All rights reserved.

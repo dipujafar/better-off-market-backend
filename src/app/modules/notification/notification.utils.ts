@@ -27,6 +27,7 @@ export const sendNotificationMessage = async ({ message, description, userId, fc
     // console.log("saved notification")
 
     if (fcmToken) {
+        console.log("sent firebase notification")
         await sendNotification([fcmToken], {
             ...notificationPayload,
             userId: userId,
