@@ -24,12 +24,63 @@ const properties_utils_1 = require("../properties/properties.utils");
 const AppError_1 = __importDefault(require("../../error/AppError"));
 const properties_models_1 = require("../properties/properties.models");
 const properties_constants_1 = require("../properties/properties.constants");
+const user_models_1 = require("../user/user.models");
 const agreement_constants_1 = require("./agreement.constants");
 const agreement_utils_1 = require("./agreement.utils");
 const findSignerIndexByEmail = (signers = [], email) => {
     const normalizedEmail = String(email !== null && email !== void 0 ? email : '').trim().toLowerCase();
     return signers.findIndex((signer) => { var _a; return String((_a = signer.email) !== null && _a !== void 0 ? _a : '').trim().toLowerCase() === normalizedEmail; });
 };
+const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => {
+    const entities = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    };
+    return entities[character];
+});
+const renderCompletionTemplate = (templateName, replacements) => {
+    const templatePath = path_1.default.join(__dirname, '../../../../public/view', templateName);
+    const template = fs_1.default.readFileSync(templatePath, 'utf8');
+    return Object.entries(replacements).reduce((html, [placeholder, value]) => html.replace(new RegExp(`{{${placeholder}}}`, 'g'), escapeHtml(value)), template);
+};
+const sendCompletionEmailsToRecipients = (recipients, subject, html) => __awaiter(void 0, void 0, void 0, function* () {
+    const uniqueRecipients = new Map();
+    recipients.forEach((recipient) => {
+        var _a;
+        const email = (_a = recipient.email) === null || _a === void 0 ? void 0 : _a.trim();
+        if (email) {
+            const key = email.toLowerCase();
+            if (!uniqueRecipients.has(key)) {
+                uniqueRecipients.set(key, { email, name: recipient.name });
+            }
+        }
+    });
+    const recipientList = Array.from(uniqueRecipients.values());
+    const results = yield Promise.allSettled(recipientList.map((recipient) => (0, mailSender_1.sendEmail)(recipient.email, subject, html.replace('{{userName}}', escapeHtml(recipient.name || 'there')))));
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            const recipient = recipientList[index];
+            console.error(`Failed to send agreement completion email to ${recipient.email}:`, result.reason);
+        }
+    });
+});
+const sendAgreementCompletionEmails = (agreement, property, buyer, seller) => __awaiter(void 0, void 0, void 0, function* () {
+    const address = (0, properties_utils_1.propertyAddress)(property.streetAddress, property.city, property.state, property.zipCode, property.county);
+    const commonReplacements = {
+        propertyAddress: address,
+        year: new Date().getFullYear().toString(),
+    };
+    const buyerHtml = renderCompletionTemplate('buyer_doc_completed.html', Object.assign(Object.assign({}, commonReplacements), { documentUrl: agreement.agreementMainDoc, platformdocumentUrl: agreement.propertyAgreementDoc }));
+    const sellerHtml = renderCompletionTemplate('seller_doc_completed.html', Object.assign(Object.assign({}, commonReplacements), { documentUrl: agreement.agreementMainDoc }));
+    const admin = yield user_models_1.User.GetAdminUser();
+    yield Promise.all([
+        sendCompletionEmailsToRecipients([...agreement.buyerAuthorizeSigner, buyer, admin !== null && admin !== void 0 ? admin : {}], 'Your Property Documents Are Complete', buyerHtml),
+        sendCompletionEmailsToRecipients([...agreement.sellerAuthorizeSigner, seller], 'Your Property Documents Are Complete', sellerHtml),
+    ]);
+});
 const addSellerAuthorizedSigner = (offerId, payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const offer = yield offer_models_1.Offer.findByIdAndUpdate(offerId, { $set: { isSellerAddedAuthorizedSigner: true } }, { new: true }).populate('property').populate('buyer').populate('seller');
@@ -84,11 +135,16 @@ const addBuyerAuthorizedSigner = (offerId, payload) => __awaiter(void 0, void 0,
 exports.addBuyerAuthorizedSigner = addBuyerAuthorizedSigner;
 const signDocument = (offerId, payload) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j;
-    const agreement = yield agreement_model_1.Agreement.findOne({ offer: offerId }).populate('property');
+    const agreement = yield agreement_model_1.Agreement.findOne({ offer: offerId })
+        .populate('property')
+        .populate('buyer')
+        .populate('seller');
     if (!agreement) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Authorized signer not found');
     }
     const property = agreement.property;
+    const buyer = agreement.buyer;
+    const seller = agreement.seller;
     // Assumption: distinguishing the two document layouts by the property's
     // state — adjust this if countyType is actually stored elsewhere.
     const countyType = ((_a = property === null || property === void 0 ? void 0 : property.state) === null || _a === void 0 ? void 0 : _a.toUpperCase()) === 'OHIO' ? 'OHIO' : 'OTHER';
@@ -124,6 +180,9 @@ const signDocument = (offerId, payload) => __awaiter(void 0, void 0, void 0, fun
         yield agreement.save();
         if (shouldCompleteAgreement) {
             yield properties_models_1.Property.findByIdAndUpdate(agreement.property, { status: properties_constants_1.STATUS.sold }, { new: true });
+            void sendAgreementCompletionEmails(agreement, property, buyer, seller).catch((error) => {
+                console.error('Failed to send agreement completion emails:', error);
+            });
         }
         return agreement;
     }
@@ -156,6 +215,9 @@ const signDocument = (offerId, payload) => __awaiter(void 0, void 0, void 0, fun
         yield agreement.save();
         if (shouldCompleteAgreement) {
             yield properties_models_1.Property.findByIdAndUpdate(agreement.property, { status: properties_constants_1.STATUS.sold }, { new: true });
+            void sendAgreementCompletionEmails(agreement, property, buyer, seller).catch((error) => {
+                console.error('Failed to send agreement completion emails:', error);
+            });
         }
         return agreement;
     }

@@ -24,16 +24,19 @@ const offer_utils_1 = require("./offer.utils");
 const agreement_model_1 = require("../agreement/agreement.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const notification_utils_1 = require("../notification/notification.utils");
+const properties_utils_1 = require("../properties/properties.utils");
+const user_models_1 = require("../user/user.models");
 // Buyer submits the first offer on a property
 const createOffer = (buyerId, propertyId, terms, supportingDocuments) => __awaiter(void 0, void 0, void 0, function* () {
-    const property = yield properties_models_1.Property.findById(propertyId);
+    var _a;
+    const property = yield properties_models_1.Property.findById(propertyId).populate('seller');
     if (!property) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Property not found');
     }
     if (property.status === properties_constants_1.STATUS.rejected || property.status === properties_constants_1.STATUS.sold || property.status === properties_constants_1.STATUS.pending) {
         throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'Property is not available for offer');
     }
-    if (property.seller.toString() === buyerId) {
+    if (property.seller._id.toString() === buyerId) {
         throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'You cannot make an offer on your own property');
     }
     const existing = yield offer_models_1.Offer.findOne({
@@ -47,7 +50,7 @@ const createOffer = (buyerId, propertyId, terms, supportingDocuments) => __await
     const result = yield offer_models_1.Offer.create({
         property: propertyId,
         buyer: buyerId,
-        seller: property.seller,
+        seller: property.seller._id,
         status: offer_constants_1.OFFER_STATUS.pending,
         currentRound: 1,
         lastActionBy: 'buyer',
@@ -58,19 +61,39 @@ const createOffer = (buyerId, propertyId, terms, supportingDocuments) => __await
         ],
     });
     yield properties_models_1.Property.findByIdAndUpdate(propertyId, { $inc: { totalOffers: 1 } });
+    const seller = property.seller;
+    const buyer = yield user_models_1.User.findById(buyerId).select('-password');
+    const notificationPayload = {
+        message: `A Offer received from ${buyer === null || buyer === void 0 ? void 0 : buyer.name} for your property `,
+        description: `Please review the offer for your property ${(0, properties_utils_1.propertyAddress)(property.streetAddress, property.city, property.state, property.zipCode, property.county)} and respond accordingly.`,
+        userId: seller._id.toString(),
+        fcmToken: seller === null || seller === void 0 ? void 0 : seller.fcmToken,
+        link: `/user/offers-received/${result._id}`,
+    };
+    (0, notification_utils_1.sendNotificationMessage)(notificationPayload);
+    const admin = yield user_models_1.User.GetAdminUser();
+    const adminNotificationPayload = {
+        message: `A Offer submitted for  property ${(0, properties_utils_1.propertyAddress)(property.streetAddress, property.city, property.state, property.zipCode, property.county)} by ${buyer === null || buyer === void 0 ? void 0 : buyer.name}`,
+        description: `${buyer === null || buyer === void 0 ? void 0 : buyer.name} has  submitted an offer for ${seller === null || seller === void 0 ? void 0 : seller.name} property ${(0, properties_utils_1.propertyAddress)(property.streetAddress, property.city, property.state, property.zipCode, property.county)}.`,
+        userId: (_a = admin._id) === null || _a === void 0 ? void 0 : _a.toString(),
+        fcmToken: admin === null || admin === void 0 ? void 0 : admin.fcmToken,
+        link: `/orders/${result._id}`,
+    };
+    (0, notification_utils_1.sendNotificationMessage)(adminNotificationPayload);
     return result;
 });
 // Either party (whoever did NOT act last) submits a counter
 const counterOffer = (offerId, userId, terms) => __awaiter(void 0, void 0, void 0, function* () {
-    const offer = yield offer_models_1.Offer.findById(offerId);
+    var _a, _b, _c, _d;
+    const offer = yield ((_c = (_b = (_a = offer_models_1.Offer.findById(offerId)) === null || _a === void 0 ? void 0 : _a.populate('property')) === null || _b === void 0 ? void 0 : _b.populate('buyer')) === null || _c === void 0 ? void 0 : _c.populate('seller'));
     if (!offer) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Offer not found');
     }
     if (offer_constants_1.CLOSED_OFFER_STATUSES.includes(offer.status)) {
         throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'This offer is closed and can no longer be countered');
     }
-    const isBuyer = offer.buyer.toString() === userId;
-    const isSeller = offer.seller.toString() === userId;
+    const isBuyer = offer.buyer._id.toString() === userId;
+    const isSeller = offer.seller._id.toString() === userId;
     if (!isBuyer && !isSeller) {
         throw new AppError_1.default(http_status_1.default.FORBIDDEN, 'You are not a party to this offer');
     }
@@ -89,6 +112,25 @@ const counterOffer = (offerId, userId, terms) => __awaiter(void 0, void 0, void 
             history: Object.assign(Object.assign({}, terms), { status: offer_constants_1.OFFER_STATUS.countered, round: nextRound, madeBy: actingAs, madeByUser: userId }),
         },
     }, { new: true, runValidators: true });
+    const buyer = offer === null || offer === void 0 ? void 0 : offer.buyer;
+    const seller = offer === null || offer === void 0 ? void 0 : offer.seller;
+    const property = offer === null || offer === void 0 ? void 0 : offer.property;
+    const notificationPayload = {
+        message: `A counter offer has been received from ${actingAs} ${actingAs === 'buyer' ? buyer === null || buyer === void 0 ? void 0 : buyer.name : seller === null || seller === void 0 ? void 0 : seller.name}.`,
+        description: `${actingAs === 'buyer' ? buyer === null || buyer === void 0 ? void 0 : buyer.name : seller === null || seller === void 0 ? void 0 : seller.name} has submitted a counter offer for the property ${(0, properties_utils_1.propertyAddress)(property.streetAddress, property.city, property.state, property.zipCode, property.county)}.`,
+        userId: actingAs === 'buyer' ? seller._id.toString() : buyer._id.toString(),
+        fcmToken: actingAs === 'buyer' ? seller.fcmToken : buyer.fcmToken,
+        link: actingAs === 'buyer' ? `/user/offers-received/${offerId}` : `/review-sent-offer?offer=${offerId}`,
+    };
+    (0, notification_utils_1.sendNotificationMessage)(notificationPayload);
+    const admin = yield user_models_1.User.GetAdminUser();
+    const adminNotificationPayload = {
+        message: `A new counter offer has been submitted.`,
+        description: `A counter offer has been submitted from ${actingAs} ${actingAs === 'buyer' ? buyer === null || buyer === void 0 ? void 0 : buyer.name : seller === null || seller === void 0 ? void 0 : seller.name} for the property ${(0, properties_utils_1.propertyAddress)(property.streetAddress, property.city, property.state, property.zipCode, property.county)}.`,
+        userId: (_d = admin._id) === null || _d === void 0 ? void 0 : _d.toString(),
+        fcmToken: admin.fcmToken,
+    };
+    (0, notification_utils_1.sendNotificationMessage)(adminNotificationPayload);
     return result;
 });
 const getAllOffers = (query) => __awaiter(void 0, void 0, void 0, function* () {
@@ -217,7 +259,7 @@ const acceptOffer = (offerId, userId) => __awaiter(void 0, void 0, void 0, funct
                 propertyAgreementDoc,
             },
         ], { session });
-        // // const admin = await User.GetAdminUser();
+        // ======= notification logic =======
         const buyer = offer === null || offer === void 0 ? void 0 : offer.buyer;
         const seller = offer === null || offer === void 0 ? void 0 : offer.seller;
         const property = offer === null || offer === void 0 ? void 0 : offer.property;
@@ -242,12 +284,17 @@ const acceptOffer = (offerId, userId) => __awaiter(void 0, void 0, void 0, funct
 });
 // Either party rejects the current terms on the table, closing the thread
 const rejectOffer = (offerId, userId) => __awaiter(void 0, void 0, void 0, function* () {
-    const offer = yield offer_models_1.Offer.findById(offerId);
+    var _a, _b, _c, _d;
+    const offer = yield offer_models_1.Offer.findById(offerId)
+        .populate('property')
+        .populate('buyer')
+        .populate('seller');
     if (!offer) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Offer not found');
     }
-    const isBuyer = offer.buyer.toString() === userId;
-    const isSeller = offer.seller.toString() === userId;
+    const isBuyer = offer.buyer._id.toString() === userId;
+    const isSeller = offer.seller._id.toString() === userId;
+    const offerRejectedBy = ((_b = (_a = offer === null || offer === void 0 ? void 0 : offer.buyer) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) === userId ? 'buyer' : 'seller';
     if (!isBuyer && !isSeller) {
         throw new AppError_1.default(http_status_1.default.FORBIDDEN, 'You are not a party to this offer');
     }
@@ -261,6 +308,18 @@ const rejectOffer = (offerId, userId) => __awaiter(void 0, void 0, void 0, funct
         throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'You cannot reject your own pending offer — withdraw it instead');
     }
     const result = yield offer_models_1.Offer.findByIdAndUpdate(offerId, { status: offer_constants_1.OFFER_STATUS.rejected }, { new: true });
+    // ======= notification logic =======
+    const buyer = offer === null || offer === void 0 ? void 0 : offer.buyer;
+    const seller = offer === null || offer === void 0 ? void 0 : offer.seller;
+    const property = offer === null || offer === void 0 ? void 0 : offer.property;
+    const notificationPayload = {
+        message: offerRejectedBy === 'seller' ? `Your offer has been rejected by seller. ` : `Your offer has been rejected by buyer. `,
+        description: `The offer has been rejected by ${offerRejectedBy === 'seller' ? "seller" : "buyer"} ${offerRejectedBy === 'seller' ? seller === null || seller === void 0 ? void 0 : seller.name : buyer === null || buyer === void 0 ? void 0 : buyer.name} for the property  ${property === null || property === void 0 ? void 0 : property.streetAddress}, ${property === null || property === void 0 ? void 0 : property.city}, ${property === null || property === void 0 ? void 0 : property.state}, ${property === null || property === void 0 ? void 0 : property.zipCode}, ${property === null || property === void 0 ? void 0 : property.county}.`,
+        userId: offerRejectedBy === 'seller' ? (_c = buyer === null || buyer === void 0 ? void 0 : buyer._id) === null || _c === void 0 ? void 0 : _c.toString() : (_d = seller === null || seller === void 0 ? void 0 : seller._id) === null || _d === void 0 ? void 0 : _d.toString(),
+        fcmToken: offerRejectedBy === 'seller' ? buyer === null || buyer === void 0 ? void 0 : buyer.fcmToken : seller === null || seller === void 0 ? void 0 : seller.fcmToken,
+        link: offerRejectedBy === 'seller' ? `/review-sent-offer?offer=${offer === null || offer === void 0 ? void 0 : offer._id}` : `/user/offers-received/${offer === null || offer === void 0 ? void 0 : offer._id}`,
+    };
+    (0, notification_utils_1.sendNotificationMessage)(notificationPayload);
     return result;
 });
 // The party who currently has an offer on the table pulls it back —

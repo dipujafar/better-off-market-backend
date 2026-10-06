@@ -6,10 +6,12 @@ import { PROPERTY_STATUS, propertySearchableFields, STATUS } from './properties.
 import { Property } from './properties.models';
 import { Types } from 'mongoose';
 import { FilterQuery, PipelineStage } from 'mongoose';
-import { PropertySearchQuery, toArray } from './properties.utils';
+import { notifyGetInTouchSubscribers, PropertySearchQuery, toArray } from './properties.utils';
 import { PropertyView } from '../PropertyView/PropertyView.model';
 import { User } from '../user/user.models';
 import { sendNotificationMessage } from '../notification/notification.utils';
+
+
 
 const createProperty = async (payload: IProperty) => {
   const result = await Property.create(payload);
@@ -333,6 +335,10 @@ const approveProperty = async (id: string) => {
   };
 
   sendNotificationMessage(notificationPayload);
+
+  void notifyGetInTouchSubscribers(result, seller?.name ?? 'Seller').catch((error) => {
+    console.error('Failed to notify GetInTouch subscribers about approved property:', error);
+  });
 
   return result;
 }

@@ -255,7 +255,7 @@ const deleteProperty = (id) => __awaiter(void 0, void 0, void 0, function* () {
 });
 // ======================================= admin services =======================================
 const approveProperty = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const result = yield properties_models_1.Property.findByIdAndUpdate(id, { status: properties_constants_1.STATUS.active }, { new: true });
     if (!result) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, 'Property not found');
@@ -269,6 +269,9 @@ const approveProperty = (id) => __awaiter(void 0, void 0, void 0, function* () {
         link: `/properties-list/${result._id}`,
     };
     (0, notification_utils_1.sendNotificationMessage)(notificationPayload);
+    void (0, properties_utils_1.notifyGetInTouchSubscribers)(result, (_b = seller === null || seller === void 0 ? void 0 : seller.name) !== null && _b !== void 0 ? _b : 'Seller').catch((error) => {
+        console.error('Failed to notify GetInTouch subscribers about approved property:', error);
+    });
     return result;
 });
 const rejectProperty = (id) => __awaiter(void 0, void 0, void 0, function* () {

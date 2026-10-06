@@ -41,7 +41,7 @@ const sendNotification = (fcmToken, payload) => __awaiter(void 0, void 0, void 0
                 },
             },
         });
-        // console.log("notification sent")
+        console.log("=====> sent notification");
         return response;
     }
     catch (error) {
