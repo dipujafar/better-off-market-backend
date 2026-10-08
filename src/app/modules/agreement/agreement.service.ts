@@ -105,12 +105,12 @@ const sendAgreementCompletionEmails = async (
 
     const buyerHtml = renderCompletionTemplate('buyer_doc_completed.html', {
         ...commonReplacements,
-        documentUrl: agreement.agreementMainDoc,
-        platformdocumentUrl: agreement.propertyAgreementDoc,
+        documentUrl: agreement.propertyAgreementDoc,
+        platformdocumentUrl: agreement.agreementMainDoc,
     });
     const sellerHtml = renderCompletionTemplate('seller_doc_completed.html', {
         ...commonReplacements,
-        documentUrl: agreement.agreementMainDoc,
+        documentUrl: agreement.propertyAgreementDoc,
     });
     const admin = await User.GetAdminUser();
 
