@@ -77,6 +77,22 @@ const getAllPropertiesForDashboard = (query) => __awaiter(void 0, void 0, void 0
     }
     return { data, meta, statusCounts };
 });
+const getPropertyTypeCounts = () => __awaiter(void 0, void 0, void 0, function* () {
+    const counts = yield properties_models_1.Property.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                status: { $in: [properties_constants_1.STATUS.pending, properties_constants_1.STATUS.under_contact] },
+            },
+        },
+        { $group: { _id: '$propertyType', count: { $sum: 1 } } },
+    ]);
+    const countMap = {};
+    for (const { _id, count } of counts) {
+        countMap[_id] = count;
+    }
+    return Object.fromEntries(properties_constants_1.PROPERTY_TYPES.map((propertyType) => [propertyType, countMap[propertyType] || 0]));
+});
 const getAllPropertiesForWeb = (query) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d;
     const page = Number(query.page) || 1;
@@ -315,6 +331,7 @@ exports.propertyService = {
     createProperty,
     getAllProperties,
     getAllPropertiesForDashboard,
+    getPropertyTypeCounts,
     getAllPropertiesForWeb,
     getPriceDroppedProperties,
     getMyListingProperties,

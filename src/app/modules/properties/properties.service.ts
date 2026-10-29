@@ -2,7 +2,12 @@ import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
 import QueryBuilder from '../../class/builder/QueryBuilder';
 import { IProperty } from './properties.interface';
-import { PROPERTY_STATUS, propertySearchableFields, STATUS } from './properties.constants';
+import {
+  PROPERTY_STATUS,
+  PROPERTY_TYPES,
+  propertySearchableFields,
+  STATUS,
+} from './properties.constants';
 import { Property } from './properties.models';
 import { Types } from 'mongoose';
 import { FilterQuery, PipelineStage } from 'mongoose';
@@ -79,6 +84,27 @@ const getAllPropertiesForDashboard = async (query: Record<string, unknown>) => {
   }
 
   return { data, meta, statusCounts };
+};
+
+const getPropertyTypeCounts = async () => {
+  const counts: { _id: string; count: number }[] = await Property.aggregate([
+    {
+      $match: {
+        isDeleted: false,
+        status: { $in: [STATUS.active, STATUS.under_contact] },
+      },
+    },
+    { $group: { _id: '$propertyType', count: { $sum: 1 } } },
+  ]);
+
+  const countMap: Record<string, number> = {};
+  for (const { _id, count } of counts) {
+    countMap[_id] = count;
+  }
+
+  return Object.fromEntries(
+    PROPERTY_TYPES.map((propertyType) => [propertyType, countMap[propertyType] || 0]),
+  ) as Record<(typeof PROPERTY_TYPES)[number], number>;
 };
 
 
@@ -394,6 +420,7 @@ export const propertyService = {
   createProperty,
   getAllProperties,
   getAllPropertiesForDashboard,
+  getPropertyTypeCounts,
   getAllPropertiesForWeb,
   getPriceDroppedProperties,
   getMyListingProperties,

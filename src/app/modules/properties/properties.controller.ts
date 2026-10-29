@@ -40,6 +40,16 @@ const getAllPropertiesForDashboard = catchAsync(async (req: Request, res: Respon
   });
 });
 
+const getPropertyTypeCounts = catchAsync(async (_req: Request, res: Response) => {
+  const result = await propertyService.getPropertyTypeCounts();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Property type counts fetched successfully',
+    data: result,
+  });
+});
+
 const getAllPropertiesForWeb = catchAsync(async (req: Request, res: Response) => {
 
   const result = await propertyService.getAllPropertiesForWeb(req.query);
@@ -187,6 +197,7 @@ export const propertyController = {
   createProperty,
   getAllProperties,
   getAllPropertiesForDashboard,
+  getPropertyTypeCounts,
   getAllPropertiesForWeb,
   getPriceDroppedProperties,
   getMyListingProperties,

@@ -73,8 +73,8 @@ const sendAgreementCompletionEmails = (agreement, property, buyer, seller) => __
         propertyAddress: address,
         year: new Date().getFullYear().toString(),
     };
-    const buyerHtml = renderCompletionTemplate('buyer_doc_completed.html', Object.assign(Object.assign({}, commonReplacements), { documentUrl: agreement.agreementMainDoc, platformdocumentUrl: agreement.propertyAgreementDoc }));
-    const sellerHtml = renderCompletionTemplate('seller_doc_completed.html', Object.assign(Object.assign({}, commonReplacements), { documentUrl: agreement.agreementMainDoc }));
+    const buyerHtml = renderCompletionTemplate('buyer_doc_completed.html', Object.assign(Object.assign({}, commonReplacements), { documentUrl: agreement.propertyAgreementDoc, platformdocumentUrl: agreement.agreementMainDoc }));
+    const sellerHtml = renderCompletionTemplate('seller_doc_completed.html', Object.assign(Object.assign({}, commonReplacements), { documentUrl: agreement.propertyAgreementDoc }));
     const admin = yield user_models_1.User.GetAdminUser();
     yield Promise.all([
         sendCompletionEmailsToRecipients([...agreement.buyerAuthorizeSigner, buyer, admin !== null && admin !== void 0 ? admin : {}], 'Your Property Documents Are Complete', buyerHtml),

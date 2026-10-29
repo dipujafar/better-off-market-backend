@@ -1,4 +1,5 @@
 "use strict";
+// s3.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -22,21 +23,24 @@ const aws_1 = require("../constants/aws");
 const uploadToS3 = (_a) => __awaiter(void 0, [_a], void 0, function* (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 { file, fileName }) {
+    var _b;
     const command = new client_s3_1.PutObjectCommand({
         Bucket: config_1.default.aws.bucket,
         Key: fileName,
         Body: file.buffer,
         ContentType: file.mimetype,
+        ACL: client_s3_1.ObjectCannedACL.public_read, //access public read
     });
     try {
         const key = yield aws_1.s3Client.send(command);
         if (!key) {
             throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'File Upload failed');
         }
-        const url = `https://${config_1.default.aws.bucket}.s3.${config_1.default.aws.region}.amazonaws.com/${fileName}`;
+        const url = `${(_b = config_1.default === null || config_1.default === void 0 ? void 0 : config_1.default.aws) === null || _b === void 0 ? void 0 : _b.s3BaseUrl}/${fileName}`;
         return url;
     }
     catch (error) {
+        console.log(error);
         throw new AppError_1.default(http_status_1.default.BAD_REQUEST, 'File Upload failed');
     }
 });
@@ -60,6 +64,7 @@ exports.deleteFromS3 = deleteFromS3;
 const uploadManyToS3 = (files) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const uploadPromises = files.map((_a) => __awaiter(void 0, [_a], void 0, function* ({ file, path, key }) {
+            var _b;
             const newFileName = key
                 ? key
                 : `${Math.floor(100000 + Math.random() * 900000)}${Date.now()}`;
@@ -68,9 +73,12 @@ const uploadManyToS3 = (files) => __awaiter(void 0, void 0, void 0, function* ()
                 Bucket: config_1.default.aws.bucket,
                 Key: fileKey,
                 Body: file === null || file === void 0 ? void 0 : file.buffer,
+                ContentType: file.mimetype,
+                ACL: client_s3_1.ObjectCannedACL.public_read, //access public read
             });
             yield aws_1.s3Client.send(command);
-            const url = `https://${config_1.default.aws.bucket}.s3.${config_1.default.aws.region}.amazonaws.com/${fileKey}`;
+            // const url = `${config?.aws?.s3BaseUrl}/${fileKey}`;
+            const url = `${(_b = config_1.default === null || config_1.default === void 0 ? void 0 : config_1.default.aws) === null || _b === void 0 ? void 0 : _b.s3BaseUrl}/${fileKey}`;
             return { url, key: newFileName };
         }));
         const uploadedUrls = yield Promise.all(uploadPromises);

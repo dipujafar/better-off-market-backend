@@ -45,6 +45,7 @@ const propertyUploadFields = upload.fields([
 router.post('/', (0, auth_1.default)(user_constants_1.USER_ROLE.user), propertyUploadFields, (0, parseData_1.default)(), properties_upload_middleware_1.default, (0, validateRequest_1.default)(properties_validation_1.propertyValidation.createPropertyValidationSchema), properties_controller_1.propertyController.createProperty);
 router.get('/', properties_controller_1.propertyController.getAllProperties);
 router.get('/dashboard', (0, auth_1.default)(user_constants_1.USER_ROLE.admin), properties_controller_1.propertyController.getAllPropertiesForDashboard);
+router.get('/property-type-counts', properties_controller_1.propertyController.getPropertyTypeCounts);
 router.get('/web-content', properties_controller_1.propertyController.getAllPropertiesForWeb);
 router.get('/price-dropped', properties_controller_1.propertyController.getPriceDroppedProperties);
 router.get('/my-listing', (0, auth_1.default)(user_constants_1.USER_ROLE.user), properties_controller_1.propertyController.getMyListingProperties);

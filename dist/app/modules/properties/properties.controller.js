@@ -51,6 +51,15 @@ const getAllPropertiesForDashboard = (0, catchAsync_1.default)((req, res) => __a
         meta: result.meta,
     });
 }));
+const getPropertyTypeCounts = (0, catchAsync_1.default)((_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield properties_service_1.propertyService.getPropertyTypeCounts();
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_1.default.OK,
+        success: true,
+        message: 'Property type counts fetched successfully',
+        data: result,
+    });
+}));
 const getAllPropertiesForWeb = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield properties_service_1.propertyService.getAllPropertiesForWeb(req.query);
     (0, sendResponse_1.default)(res, {
@@ -172,6 +181,7 @@ exports.propertyController = {
     createProperty,
     getAllProperties,
     getAllPropertiesForDashboard,
+    getPropertyTypeCounts,
     getAllPropertiesForWeb,
     getPriceDroppedProperties,
     getMyListingProperties,
